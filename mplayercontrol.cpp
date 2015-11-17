@@ -4,7 +4,6 @@ MplayerControl::MplayerControl(QObject *parent)
    : QObject(parent)
 {
    qDebug() << "MplayerControl::MplayerControl: ";
-   m_VideoFile = new QString();
    m_VideoIdString = new QString();
    m_RegexPosition = new QRegExp( "^A:\\s*\\d+[.]?\\d*\\s+V:\\s*(\\d+)(?:[.,]?(\\d+))\\s+", Qt::CaseInsensitive);
    m_RegexLength = new QRegExp("ID_LENGTH=(\\d+)(?:[,.](\\d+))?", Qt::CaseInsensitive);
@@ -62,13 +61,18 @@ void MplayerControl::setVideoFile(const QString &address)
       quit();
       m_Process->close();
    }*/
-   m_VideoFile->clear();
-   m_VideoFile->append(address);
+   m_VideoAddress = address;
    m_Args.clear();
-   m_Args << *m_VideoFile << "-identify" << "-endpos" << "0";
+   m_Args << m_VideoAddress << "-identify" << "-endpos" << "0";
    m_Process->setArguments(m_Args);
    connect(m_Process, SIGNAL(readyRead()), this, SLOT(readVideoId()));
    m_Process->start();
+}
+
+void MplayerControl::setSubtitleFile(const QString &address)
+{
+   qDebug() << "MplayerControl::setSubtitleFile: " << address;
+   m_SubtitleAddress = address;
 }
 
 
@@ -179,7 +183,7 @@ void MplayerControl::updateSubtitle()
    sendCommand();
    m_Command = "sub_file -1\r\n";
    sendCommand();
-   m_Command = "sub_load " + m_SubtitleFile + "\r\n";
+   m_Command = "sub_load " + m_SubtitleAddress + "\r\n";
    sendCommand();
    m_Command = "sub_select 0\r\n";
    sendCommand();
@@ -210,6 +214,8 @@ void MplayerControl::startPlaying(const QString &winId)
    m_Args.removeLast(); // -endpos
    m_Args.removeLast(); // -identify
    m_Args
+         << "-sub"
+         << m_SubtitleAddress
          << "-slave"
          << "-osdlevel"
          << "0"

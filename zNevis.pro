@@ -8,32 +8,23 @@ TARGET = zNevis
 INCLUDEPATH += .
 
 # Input
-HEADERS += chooseencodingdialog.h \
+HEADERS += \
            mainwindow.h \
-           mytable.h \
            subtitle.h \
-    timeeditbox.h \
-    mytablewidgetitem.h \
-    mygraphicsview.h \
     mplayercontrol.h \
     convertdialog.h \
-    logdialog.h
+    mencodercontrol.h
 
-FORMS += chooseencodingdialog.ui mainwindow.ui \
+FORMS += mainwindow.ui \
     convertdialog.ui \
-    logdialog.ui \
 
-SOURCES += chooseencodingdialog.cpp \
+SOURCES += \
            main.cpp \
            mainwindow.cpp \
-           mytable.cpp \
            subtitle.cpp \
-    timeeditbox.cpp \
-    mytablewidgetitem.cpp \
-    mygraphicsview.cpp \
     mplayercontrol.cpp \
     convertdialog.cpp \
-    logdialog.cpp
+    mencodercontrol.cpp
 
 RESOURCES += \
     zNevis.qrc

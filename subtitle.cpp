@@ -36,7 +36,8 @@ Subtitle::Subtitle(QString fileName)
 
 Subtitle::~Subtitle()
 {
-   m_File.remove();
+   if(m_File.exists())
+      m_File.remove();
 }
 
 
@@ -273,6 +274,10 @@ bool Subtitle::save()
    *qerr << "Subtitle::" << "saveSubtitle# " << "file saved" << endl;
    return true;
 }
+
+
+
+
 
 
 void Subtitle::loadTime(const QStringList &timeList)

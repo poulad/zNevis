@@ -7,6 +7,7 @@
 #include <QRegExp>
 #include <QStandardPaths>
 
+
 class MplayerControl : public QObject
 {
    Q_OBJECT
@@ -21,6 +22,7 @@ public:
    //Set functions:
    void setMplayerAddress(const QString& address);
    void setVideoFile(const QString& address);
+   void setSubtitleFile(const QString& address);
 
    //Other
    void locateMplayer();
@@ -59,8 +61,8 @@ private:
    QString *m_VideoIdString;
    QProcess *m_Process;
    QString m_Command;
-   QString *m_VideoFile;
-   QString m_SubtitleFile;
+   QString m_VideoAddress;
+   QString m_SubtitleAddress;
 
    QString m_ErrorLog;
    QString m_MplayerAddress;

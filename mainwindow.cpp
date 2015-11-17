@@ -30,7 +30,7 @@ MainWindow::~MainWindow()
 }
 
 
-void MainWindow::openSubtitle()
+void MainWindow::on_actionOpenSubtitle_triggered()
 {
    m_SubtitleFileDialog->setDirectory(*m_Dir);
    if(m_SubtitleFileDialog->exec())
@@ -47,24 +47,24 @@ void MainWindow::openSubtitle()
 
 void MainWindow::importSubtitle()
 {
-   qDebug() << "importing";
+   qDebug() << "MainWindow::importSubtitle: ";
    ui->tableWidget->clearContents();
    ui->tableWidget->setRowCount( subtitle->lineCount() );
    ui->tableWidget->setColumnCount( 4 );
    for(quint64 i =0; i < subtitle->lineCount(); ++i)
    {
       subtitle->setCurrentLine(i+1);
-      ui->tableWidget->setItem(i, 0, new MyTableWidgetItem(subtitle->showTime().toString("hh:mm:ss,zzz")) );
-      ui->tableWidget->setItem(i, 1, new MyTableWidgetItem(subtitle->hideTime().toString("hh:mm:ss,zzz")) );
-      ui->tableWidget->setItem(i , 2, new MyTableWidgetItem( subtitle->durationTime().toString("hh:mm:ss,zzz")) );
-      MyTableWidgetItem *lineTextItem = new MyTableWidgetItem(subtitle->text());
+      ui->tableWidget->setItem(i, 0, new QTableWidgetItem(subtitle->showTime().toString("hh:mm:ss,zzz")) );
+      ui->tableWidget->setItem(i, 1, new QTableWidgetItem(subtitle->hideTime().toString("hh:mm:ss,zzz")) );
+      ui->tableWidget->setItem(i , 2, new QTableWidgetItem( subtitle->durationTime().toString("hh:mm:ss,zzz")) );
+      QTableWidgetItem *lineTextItem = new QTableWidgetItem(subtitle->text());
       lineTextItem->setTextColor( subtitle->color() );
       lineTextItem->setFont( subtitle->font() );
       ui->tableWidget->setItem(i, 3, lineTextItem );
    }
    ui->tableWidget->setColumnWidth(3, 700);
 
-   qDebug() << "LOADING properties of FIRST line";
+   //LOADING properties of FIRST line
    subtitle->setCurrentLine(1);
 
    m_Text = &subtitle->text();
@@ -84,12 +84,11 @@ void MainWindow::importSubtitle()
    ui->sizeSpinBox->setValue( m_Font->pointSize());
    ui->showTimeEdit->setTime( *m_ShowTime );
    ui->hideTimeEdit->setTime( *m_HideTime );
-   ui->subDurationTimeEdit->setTime( *m_DurationTime );
+   ui->durationTimeEdit->setTime( *m_DurationTime );
    ui->fontComboBox->setCurrentFont( *m_Font );
 
-   ui->previousLineButton->setEnabled(false);
-   if(ui->tableWidget->rowCount() == 1)
-      ui->nextLineButton->setEnabled(false);
+   ui->actionOpenSubtitle->setEnabled(false);
+   ui->actionOpenVideo->setEnabled(true);
 
    connect(ui->tableWidget, SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(changeLineProperties(int,int,int,int)));
    connect(ui->textEdit, SIGNAL(textChanged()), this, SLOT(updateText()));
@@ -102,9 +101,8 @@ void MainWindow::importSubtitle()
    connect(m_ColorDialog, SIGNAL(currentColorChanged(QColor)), this, SLOT(updateColor()));
    connect(ui->showTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateShowTime(QTime)));
    connect(ui->hideTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateHideTime(QTime)));
-   connect(ui->subDurationTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateDurationTime(QTime)));
+   connect(ui->durationTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateDurationTime(QTime)));
    connect(ui->colorButton, SIGNAL(clicked(bool)), m_ColorDialog, SLOT(exec()));
-   connect(ui->fontButton, SIGNAL(clicked(bool)), this, SLOT(setLineFont()));
 }
 
 
@@ -132,7 +130,7 @@ void MainWindow::changeLineProperties(int currentRow, int currentColumn, int pre
    disconnect(m_ColorDialog, SIGNAL(currentColorChanged(QColor)), this, SLOT(updateColor()));
    disconnect(ui->showTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateShowTime(QTime)));
    disconnect(ui->hideTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateHideTime(QTime)));
-   disconnect(ui->subDurationTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateDurationTime(QTime)));
+   disconnect(ui->durationTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateDurationTime(QTime)));
 
    subtitle->setCurrentLine(currentRow+1);
 
@@ -159,16 +157,7 @@ void MainWindow::changeLineProperties(int currentRow, int currentColumn, int pre
    m_DurationTime = &subtitle->durationTime();
    ui->showTimeEdit->setTime( *m_ShowTime );
    ui->hideTimeEdit->setTime( *m_HideTime );
-   ui->subDurationTimeEdit->setTime( *m_DurationTime );
-
-   if(currentRow == 0)
-      ui->previousLineButton->setEnabled(false);
-   else
-      ui->previousLineButton->setEnabled(true);
-   if(currentRow == ui->tableWidget->rowCount() - 1)
-      ui->nextLineButton->setEnabled(false);
-   else
-      ui->nextLineButton->setEnabled(true);
+   ui->durationTimeEdit->setTime( *m_DurationTime );
 
    connect(ui->textEdit, SIGNAL(textChanged()), this, SLOT(updateText()));
    connect(ui->fontComboBox, SIGNAL(currentFontChanged(QFont)), this, SLOT(updateFont()));
@@ -180,13 +169,7 @@ void MainWindow::changeLineProperties(int currentRow, int currentColumn, int pre
    connect(m_ColorDialog, SIGNAL(currentColorChanged(QColor)), this, SLOT(updateColor()));
    connect(ui->showTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateShowTime(QTime)));
    connect(ui->hideTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateHideTime(QTime)));
-   connect(ui->subDurationTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateDurationTime(QTime)));
-}
-
-
-void MainWindow::setLineFont()
-{
-   fontDialog->exec();
+   connect(ui->durationTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateDurationTime(QTime)));
 }
 
 
@@ -250,7 +233,7 @@ void MainWindow::updateShowTime(QTime newShowTime)
       ui->showTimeEdit->setTime(*m_HideTime);
       m_DurationTime->setHMS(0,0,0,0);
    }
-   ui->subDurationTimeEdit->setTime(*m_DurationTime);
+   ui->durationTimeEdit->setTime(*m_DurationTime);
    ui->tableWidget->item(ui->tableWidget->currentRow(), 0)->setText( m_ShowTime->toString("hh:mm:ss,zzz") );
    ui->tableWidget->item( ui->tableWidget->currentRow(), 2 )->setText( m_DurationTime->toString("hh:mm:ss,zzz") );
    subtitle->updateLine();
@@ -278,7 +261,7 @@ void MainWindow::updateHideTime(QTime newHideTime)
       ui->hideTimeEdit->setTime(*m_ShowTime);
       m_DurationTime->setHMS(0,0,0,0);
    }
-   ui->subDurationTimeEdit->setTime(*m_DurationTime);
+   ui->durationTimeEdit->setTime(*m_DurationTime);
    ui->tableWidget->item(ui->tableWidget->currentRow(), 1)->setText( m_HideTime->toString("hh:mm:ss,zzz") );
    ui->tableWidget->item(ui->tableWidget->currentRow(), 2)->setText( m_DurationTime->toString("hh:mm:ss,zzz") );
    subtitle->updateLine();
@@ -310,45 +293,16 @@ void MainWindow::updateDurationTime(QTime newDurationTime)
 }
 
 
-void MainWindow::newSubtitle()
-{
-   ///clean all elements on screen
-   ui->tableWidget->clearContents();
-   ui->tableWidget->setRowCount(1);
-   ui->textEdit->clear();
-   ui->showTimeEdit->clear();
-   ui->hideTimeEdit->clear();
-   ui->subDurationTimeEdit->clear();
-   ui->sizeSpinBox->setValue(12);
-   ui->boldCheckBox->setChecked(false);
-   delete subtitle;
-
-   ///allocating new subtitle
-   subtitle = new Subtitle();
-}
-
-
-void MainWindow::startConvertion()
+void MainWindow::on_actionConvert_triggered()
 {
    m_MplayerControl->pause();
-   m_OutputFile = new QFile("/home/yuzer/Videos/av/ZZ.mp4");
-   int length = 10;
-   QStringList arguments;
-   arguments
+   QStringList files;
+   files
          << m_VideoFile.fileName()
-         << "-sub"
          << m_SubtitleFile.fileName()
-         << "-o"
-         << m_OutputFile->fileName()
-         << "-oac"
-         << "pcm"
-         << "-ovc"
-         << "x264"
-         << "-ass"
-         << "-endpos"
-         << "10"
+         << "/home/yuzer/Videos/av/yy.mp4"
             ;
-   m_ConvertDialog = new ConvertDialog(arguments, length, this);
+   m_ConvertDialog = new ConvertDialog(files, 15, this);
    m_ConvertDialog->exec();
 }
 
@@ -369,9 +323,11 @@ void MainWindow::playNextLine()
 
 void MainWindow::setVideoPosition(quint64 sec, quint64 msec)
 {
+   qDebug() << "MainWindow::setVideoPosition: ";
    *m_VideoPosition = QTime::fromMSecsSinceStartOfDay(sec*1000 + msec );
    ui->positionSlider->setValue( sec*1000 + msec  );
    ui->positionLabel->setText( m_VideoPosition->toString("hh:mm:ss,zzz") );
+   //qDebug() << "## " << m_VideoPosition->toString("hh:mm:ss,zzz") << " ##";
    ui->positionSlider->setValue( m_VideoPosition->msecsSinceStartOfDay() );
 }
 
@@ -398,20 +354,20 @@ void MainWindow::findMplayer(QString *errorLog)
       if (QMessageBox::critical(this, "mplayer was not found" , "Application failed to run mplayer.\nDo you want to see logs?",
                                 QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
       {
-         m_LogDialog->exec();
+         //m_LogDialog->exec();
       }
       close();
       qApp->exit(1);
    }
    else
    {
-      m_LogDialog = new LogDialog(this);
+      //m_LogDialog = new LogDialog(this);
       m_MplayerFileDialog = new QFileDialog(this);
       hide();
       m_MplayerExists = false;
       setEnabled(false);
-      m_LogDialog->appendMplayerLog(*errorLog);
-      m_LogDialog->show();
+      //m_LogDialog->appendMplayerLog(*errorLog);
+      //m_LogDialog->show();
       //ui->check the view menu->log
       m_MplayerFileDialog->setDirectory( QStandardPaths::writableLocation( QStandardPaths::ApplicationsLocation) );
       m_MplayerFileDialog->setFileMode(QFileDialog::ExistingFile);
@@ -442,12 +398,9 @@ void MainWindow::createGui()
    ///set Time Spin Boxes to change SECONDS
    ui->showTimeEdit->setCurrentSectionIndex(2);
    ui->hideTimeEdit->setCurrentSectionIndex(2);
-   ui->subDurationTimeEdit->setCurrentSectionIndex(2);
+   ui->durationTimeEdit->setCurrentSectionIndex(2);
 
    /// CONNECTIONS:
-   connect(ui->actionOpenSubtitle,SIGNAL(triggered(bool)), this, SLOT(openSubtitle()));
-   connect(ui->actionNewSubtitle, SIGNAL(triggered(bool)), this, SLOT(newSubtitle()));
-   connect(ui->actionConvert, SIGNAL(triggered(bool)), this, SLOT(startConvertion()));
    ui->dockWidget->hide();
    ui->toolBar->setEnabled(true);
    setEnabled(true);
@@ -464,6 +417,7 @@ void MainWindow::on_actionOpenVideo_triggered()
       setEnabled(false);
       connect(m_MplayerControl, SIGNAL(videoIdread(QStringList&)), this, SLOT(importVideoId(QStringList &)));
       m_VideoFile.setFileName( m_VideoFileDialog->selectedFiles().first() );
+      m_MplayerControl->setSubtitleFile(m_SubtitleFile.fileName());
       m_MplayerControl->setVideoFile(m_VideoFile.fileName());
    }
    *m_Dir = m_VideoFileDialog->directory();
@@ -538,11 +492,14 @@ void MainWindow::importVideoId(QStringList &videoIdList)
    m_VideoPosition = new QTime();
    connect(ui->playPauseButton, SIGNAL(clicked(bool)), m_MplayerControl, SLOT(playPause()));
    connect(ui->volumeSlider, SIGNAL(valueChanged(int)), m_MplayerControl, SLOT(volume(int)));
+   connect(m_MplayerControl, SIGNAL(positionChanged(quint64,quint64)), this, SLOT(setVideoPosition(quint64, quint64)));
    m_MplayerControl->startPlaying( QString::number(ui->mplayerWidget->winId()) );
    ui->dockWidget->show();
    ui->dockWidget->setEnabled(true);
-   ui->toolBar->setEnabled(true);
-   setEnabled(true);
+   ui->actionOpenSubtitle->setEnabled(false);
+   ui->actionOpenVideo->setEnabled(false);
+   ui->actionConvert->setEnabled(true);
+   enableItems(true);
 }
 
 
@@ -562,19 +519,22 @@ void MainWindow::on_positionSlider_sliderReleased()
 }
 
 
-void MainWindow::on_fullscreenButton_toggled(bool checked)
+
+void MainWindow::enableItems(bool b)
 {
-   if(checked)
-   {
-      setCentralWidget( ui->stackedWidget );
-      ui->dockWidget->hide();
-      ui->toolBar->hide();
-      setWindowState(windowState() ^ Qt::WindowFullScreen);
-   }
-   else
-   {
-      ui->dockWidget->show();
-      ui->toolBar->show();
-      setWindowState(Qt::WindowMaximized);
-   }
+   ui->tableWidget->setEnabled(b);
+   ui->showLabel->setEnabled(b);
+   ui->showTimeEdit->setEnabled(b);
+   ui->hideLabel->setEnabled(b);
+   ui->hideTimeEdit->setEnabled(b);
+   ui->durationLabel->setEnabled(b);
+   ui->durationTimeEdit->setEnabled(b);
+   ui->fontLabel->setEnabled(b);
+   ui->fontComboBox->setEnabled(b);
+   ui->boldCheckBox->setEnabled(b);
+   ui->italicCheckBox->setEnabled(b);
+   ui->underlineCheckBox->setEnabled(b);
+   ui->strikeOutCheckBox->setEnabled(b);
+   ui->colorButton->setEnabled(b);
+   ui->textEdit->setEnabled(b);
 }

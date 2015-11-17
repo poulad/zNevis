@@ -1,7 +1,7 @@
 #include "convertdialog.h"
 #include "ui_convertdialog.h"
 
-ConvertDialog::ConvertDialog(const QStringList &argumentsList, int length, QWidget *parent) :
+ConvertDialog::ConvertDialog(const QStringList &filesList, const double length, QWidget *parent) :
    QDialog(parent),
    ui(new Ui::ConvertDialog)
 {
@@ -9,15 +9,15 @@ ConvertDialog::ConvertDialog(const QStringList &argumentsList, int length, QWidg
    ui->textEdit->setHidden(true);
    connect(ui->detailsButton, SIGNAL(toggled(bool)), this, SLOT(toggleDetails(bool)));
    this->adjustSize();
-   ui->progressBar->setMaximum(length);
-   m_Process = new QProcess(this);
-   m_PositionRegex = new QRegExp("Pos:[\\t ]*(\\d+)[,.]\\d+[s]?[ \\t]+", Qt::CaseInsensitive);
-   m_Process->setProgram("mencoder");
-   m_Process->setArguments(argumentsList);
-   connect(m_Process, SIGNAL(readyReadStandardOutput()), this, SLOT(readOutput()));
-   connect(m_Process, SIGNAL(readyReadStandardError()), this, SLOT(readError()));
-   connect(m_Process, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(convertionFinished(int,QProcess::ExitStatus)));
-   m_Process->start();
+
+   m_Length = length;
+
+   m_MencoderControl = new MencoderControl(parent);
+   connect(m_MencoderControl, SIGNAL(positionChanged(int)), this, SLOT(setProgressBarValue(int)));
+   connect(m_MencoderControl, SIGNAL(logRead(QString)), this, SLOT(appendLog(QString)));
+   connect(m_MencoderControl, SIGNAL(finished(int)), this, SLOT(conversionFinished(int)));
+   m_MencoderControl->setFiles(filesList);
+   m_MencoderControl->startConversion();
 }
 
 
@@ -27,37 +27,12 @@ ConvertDialog::~ConvertDialog()
 }
 
 
-void ConvertDialog::readOutput()
-{
-   QString output = m_Process->readAllStandardOutput();
-   ui->textEdit->append(output);
-   qDebug() << output;
-   if(output.contains(*m_PositionRegex))
-   {
-      int position = m_PositionRegex->cap(1).toInt();
-      //qDebug() << "======================================" << QString::number(position );
-      ui->progressBar->setValue( position );
-   }
-}
-
-
 void ConvertDialog::closeEvent(QCloseEvent *event)
 {
-   if( m_Process->state() == QProcess::NotRunning )
-      event->accept();
-   else
       event->ignore();
 }
 
-
-void ConvertDialog::readError()
-{
-   QString error = m_Process->readAllStandardError();
-   ui->textEdit->append(error);
-   qDebug() << error;
-}
-
-
+/*
 void ConvertDialog::convertionFinished(int exitCode, QProcess::ExitStatus status)
 {
    qDebug() << "Exit code: " << QString::number(exitCode);
@@ -70,7 +45,7 @@ void ConvertDialog::convertionFinished(int exitCode, QProcess::ExitStatus status
          this->done(0);
       }
    }
-}
+}*/
 
 
 void ConvertDialog::toggleDetails(bool b)
@@ -79,4 +54,29 @@ void ConvertDialog::toggleDetails(bool b)
    ui->detailsButton->setText( (b ? "Hide details <<" : "Show details >>") );
    if(!b)
       this->adjustSize();
+}
+
+
+void ConvertDialog::setProgressBarValue(int second)
+{
+   qDebug() << "ConverDialog::setProgressBarValue: " << "second=" << QString::number(second);
+   int posPercentage = second*100/m_Length;
+   ui->progressBar->setValue(posPercentage);
+}
+
+
+void ConvertDialog::appendLog(QString log)
+{
+   ui->textEdit->append(log);
+}
+
+
+void ConvertDialog::conversionFinished(int exitCode)
+{
+   QMessageBox::information(
+            this,
+            "Done",
+            "mencoder finished conversion\n"
+            "exitCode=" + QString::number(exitCode)
+                            );
 }

@@ -3,6 +3,7 @@
 #include <QtCore>
 #include <QStringList>
 #include <QFile>
+#include <QTemporaryFile>
 #include <QTextCodec>
 #include <QTextStream>
 #include <QColor>
@@ -12,6 +13,7 @@
 
 class Subtitle
 {
+
 public:
    Subtitle();
    Subtitle(QString subtitleFileName);
@@ -65,6 +67,7 @@ private:
    QFont m_DefaultFont;
    QColor m_DefaultColor;
    QFile m_File;
+   QTemporaryFile m_TempFile;
    quint64 m_LineCount;
 
    quint64 m_CurrentLine;

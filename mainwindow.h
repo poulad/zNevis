@@ -1,12 +1,9 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 #include "ui_mainwindow.h"
-#include "mytable.h"
-#include "mytablewidgetitem.h"
 #include "convertdialog.h"
 #include <QMainWindow>
 #include "subtitle.h"
-#include "timeeditbox.h"
 #include <QColor>
 #include <QColorDialog>
 #include <QFontDialog>
@@ -14,9 +11,7 @@
 #include <QFile>
 #include <QDir>
 #include "mplayercontrol.h"
-#include <QTemporaryFile>
 #include <QMessageBox>
-#include "logdialog.h"
 
 namespace Ui {
    class MainWindow;
@@ -36,7 +31,6 @@ private slots:
    void createGui();
    void importVideoId(QStringList &videoIdList);
 
-
    void changeLineProperties(int,int,int, int);
 
    void updateText();
@@ -46,31 +40,22 @@ private slots:
    void updateHideTime(QTime);
    void updateDurationTime(QTime);
 
-   void openSubtitle();
    void importSubtitle();
 
    void playPreviousLine();
    void playNextLine();
 
-   void setLineFont();
    void setVideoPosition(quint64, quint64);
    void seekSlider(int);
 
-   void newSubtitle();
-
-   void startConvertion();
-
+   void on_actionOpenSubtitle_triggered();
    void on_actionOpenVideo_triggered();
-
    void on_positionSlider_sliderPressed();
-
    void on_positionSlider_sliderReleased();
-
-   void on_fullscreenButton_toggled(bool checked);
+   void on_actionConvert_triggered();
 
 private:
-   inline void setItemsEnabled(bool b);
-
+   inline void enableItems(bool);
 
    Ui::MainWindow *ui;
    QMainWindow *m;
@@ -84,19 +69,14 @@ private:
    QTime *m_DurationTime;
 
    QWidget *newWidget;
-   MyTable *table;
    Subtitle *subtitle;
    QColorDialog *m_ColorDialog;
    QFontDialog *fontDialog;
    QFileDialog *m_SubtitleFileDialog;
    QFileDialog *m_MplayerFileDialog;
 
-   LogDialog *m_LogDialog;
-
-   TimeEditBox *showTimeBox;
    QFile m_SubtitleFile;
-   QFile m_TempSubtitle;
-   QFile *m_OutputFile;
+   QFile m_OutputFile;
    QDir *m_Dir;
    MplayerControl *m_MplayerControl;
 
@@ -105,7 +85,6 @@ private:
    QTime *m_VideoPosition;
    int m_VideoWidth;
    int m_VideoHeight;
-
 
    bool m_MplayerExists;
 };
