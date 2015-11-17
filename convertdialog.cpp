@@ -11,6 +11,7 @@ ConvertDialog::ConvertDialog(const QStringList &filesList, const double length, 
    this->adjustSize();
 
    m_Length = length;
+   m_ConversionFinished = false;
 
    m_MencoderControl = new MencoderControl(parent);
    connect(m_MencoderControl, SIGNAL(positionChanged(int)), this, SLOT(setProgressBarValue(int)));
@@ -29,6 +30,9 @@ ConvertDialog::~ConvertDialog()
 
 void ConvertDialog::closeEvent(QCloseEvent *event)
 {
+   if(m_ConversionFinished)
+      event->accept();
+   else
       event->ignore();
 }
 
@@ -73,10 +77,13 @@ void ConvertDialog::appendLog(QString log)
 
 void ConvertDialog::conversionFinished(int exitCode)
 {
-   QMessageBox::information(
-            this,
-            "Done",
-            "mencoder finished conversion\n"
-            "exitCode=" + QString::number(exitCode)
-                            );
+   m_ConversionFinished = true;
+   if(ui->autoCloseCheckBox->isChecked())
+   {
+      close();
+   }
+   else
+   {
+
+   }
 }

@@ -34,6 +34,7 @@ private:
    Ui::ConvertDialog *ui;
    MencoderControl *m_MencoderControl;
    double m_Length;
+   bool m_ConversionFinished;
 };
 
 #endif // CONVERTDIALOG_H

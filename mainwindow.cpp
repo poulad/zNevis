@@ -98,11 +98,9 @@ void MainWindow::importSubtitle()
    connect(ui->italicCheckBox, SIGNAL(toggled(bool)), this, SLOT(updateFont()));
    connect(ui->strikeOutCheckBox, SIGNAL(toggled(bool)), this, SLOT(updateFont()));
    connect(ui->underlineCheckBox, SIGNAL(toggled(bool)), this, SLOT(updateFont()));
-   connect(m_ColorDialog, SIGNAL(currentColorChanged(QColor)), this, SLOT(updateColor()));
    connect(ui->showTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateShowTime(QTime)));
    connect(ui->hideTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateHideTime(QTime)));
    connect(ui->durationTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateDurationTime(QTime)));
-   connect(ui->colorButton, SIGNAL(clicked(bool)), m_ColorDialog, SLOT(exec()));
 }
 
 
@@ -127,7 +125,6 @@ void MainWindow::changeLineProperties(int currentRow, int currentColumn, int pre
    disconnect(ui->italicCheckBox, SIGNAL(toggled(bool)), this, SLOT(updateFont()));
    disconnect(ui->strikeOutCheckBox, SIGNAL(toggled(bool)), this, SLOT(updateFont()));
    disconnect(ui->underlineCheckBox, SIGNAL(toggled(bool)), this, SLOT(updateFont()));
-   disconnect(m_ColorDialog, SIGNAL(currentColorChanged(QColor)), this, SLOT(updateColor()));
    disconnect(ui->showTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateShowTime(QTime)));
    disconnect(ui->hideTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateHideTime(QTime)));
    disconnect(ui->durationTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateDurationTime(QTime)));
@@ -166,7 +163,6 @@ void MainWindow::changeLineProperties(int currentRow, int currentColumn, int pre
    connect(ui->italicCheckBox, SIGNAL(toggled(bool)), this, SLOT(updateFont()));
    connect(ui->strikeOutCheckBox, SIGNAL(toggled(bool)), this, SLOT(updateFont()));
    connect(ui->underlineCheckBox, SIGNAL(toggled(bool)), this, SLOT(updateFont()));
-   connect(m_ColorDialog, SIGNAL(currentColorChanged(QColor)), this, SLOT(updateColor()));
    connect(ui->showTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateShowTime(QTime)));
    connect(ui->hideTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateHideTime(QTime)));
    connect(ui->durationTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateDurationTime(QTime)));
@@ -200,17 +196,6 @@ void MainWindow::updateFont()
    ui->tableWidget->currentItem()->setFont(*m_Font);
    subtitle->updateLine( ui->tableWidget->currentRow()+1 );
    qDebug() << subtitle->font();
-   m_MplayerControl->updateSubtitle();
-}
-
-
-void MainWindow::updateColor()
-{
-   *m_Color = m_ColorDialog->currentColor();
-   qDebug() << "MainWidnow::" << "updateColor: " << m_Color->name(QColor::HexRgb);
-   ui->textEdit->setTextColor(*m_Color);
-   ui->tableWidget->item(ui->tableWidget->currentRow(), 3)->setTextColor(*m_Color);
-   subtitle->updateLine();
    m_MplayerControl->updateSubtitle();
 }
 
@@ -391,9 +376,8 @@ void MainWindow::createGui()
    m_VideoFileDialog->setFileMode(QFileDialog::ExistingFile);
    m_VideoFileDialog->setWindowTitle("Open video");
    m_VideoFileDialog->setNameFilter("OOG, MP4, MKV (*.ogg *.mp4 *.mkv)\nAll Files (*.*)");
-   m_ColorDialog = new QColorDialog(this);
-   m_ColorDialog->setWindowTitle("Select Color");
    m_Dir = new QDir( QStandardPaths::writableLocation(QStandardPaths::MoviesLocation ) );
+   m_ColorDialog = 0;
 
    ///set Time Spin Boxes to change SECONDS
    ui->showTimeEdit->setCurrentSectionIndex(2);
@@ -519,6 +503,28 @@ void MainWindow::on_positionSlider_sliderReleased()
 }
 
 
+void MainWindow::on_colorButton_clicked()
+{
+   qDebug() << "MainWidnow::" << "updateColor: ";
+   if(m_ColorDialog == 0)
+   {
+      m_ColorDialog = new QColorDialog(this);
+      m_ColorDialog->setWindowTitle("Select Color");
+   }
+   m_ColorDialog->setCurrentColor(*m_Color);
+   if(m_ColorDialog->exec() == QDialog::Accepted)
+   {
+      *m_Color = m_ColorDialog->selectedColor();
+      ui->textEdit->setTextColor(*m_Color);
+      QString text = ui->textEdit->toPlainText();
+      ui->textEdit->setPlainText("Plain Text");
+      ui->textEdit->setPlainText(text);
+      ui->tableWidget->currentItem()->setTextColor(*m_Color);
+      subtitle->updateLine();
+      m_MplayerControl->updateSubtitle();
+   }
+}
+
 
 void MainWindow::enableItems(bool b)
 {
@@ -538,3 +544,6 @@ void MainWindow::enableItems(bool b)
    ui->colorButton->setEnabled(b);
    ui->textEdit->setEnabled(b);
 }
+
+
+

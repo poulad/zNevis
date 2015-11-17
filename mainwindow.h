@@ -35,7 +35,6 @@ private slots:
 
    void updateText();
    void updateFont();
-   void updateColor();
    void updateShowTime(QTime);
    void updateHideTime(QTime);
    void updateDurationTime(QTime);
@@ -53,6 +52,7 @@ private slots:
    void on_positionSlider_sliderPressed();
    void on_positionSlider_sliderReleased();
    void on_actionConvert_triggered();
+   void on_colorButton_clicked();
 
 private:
    inline void enableItems(bool);
