@@ -13,6 +13,8 @@
 #include "mplayercontrol.h"
 #include <QMessageBox>
 
+//#include <QTextEdit>
+
 namespace Ui {
    class MainWindow;
 }
@@ -28,7 +30,6 @@ public:
 
 private slots:
    void findMplayer(QString*);
-   void createGui();
    void importVideoId(QStringList &videoIdList);
 
    void changeLineProperties(int,int,int, int);
@@ -38,15 +39,14 @@ private slots:
    void updateShowTime(QTime);
    void updateHideTime(QTime);
    void updateDurationTime(QTime);
-
    void importSubtitle();
-
    void playPreviousLine();
    void playNextLine();
 
    void setVideoPosition(quint64, quint64);
    void seekSlider(int);
 
+   void on_actionNewSubtitle_triggered();
    void on_actionOpenSubtitle_triggered();
    void on_actionOpenVideo_triggered();
    void on_positionSlider_sliderPressed();
@@ -54,12 +54,15 @@ private slots:
    void on_actionConvert_triggered();
    void on_colorButton_clicked();
 
+   void readLog(QString);
+
 private:
-   inline void enableItems(bool);
+   inline void enableSubtitleWidgets(bool);
 
    Ui::MainWindow *ui;
    QMainWindow *m;
    ConvertDialog *m_ConvertDialog;
+   //QTextEdit m_LogDialog;
 
    QString *m_Text;
    QFont *m_Font;
@@ -69,10 +72,10 @@ private:
    QTime *m_DurationTime;
 
    QWidget *newWidget;
-   Subtitle *subtitle;
+   Subtitle *m_Subtitle;
    QColorDialog *m_ColorDialog;
    QFontDialog *fontDialog;
-   QFileDialog *m_SubtitleFileDialog;
+   QFileDialog *m_OpenSubtitleFileDialog;
    QFileDialog *m_MplayerFileDialog;
 
    QFile m_SubtitleFile;
@@ -80,13 +83,14 @@ private:
    QDir *m_Dir;
    MplayerControl *m_MplayerControl;
 
-   QFileDialog *m_VideoFileDialog;
+   QFileDialog *m_OpenVideoFileDialog;
    QFile m_VideoFile;
    QTime *m_VideoPosition;
    int m_VideoWidth;
    int m_VideoHeight;
 
    bool m_MplayerExists;
+   bool m_IsPlaying;
 };
 
 #endif // MAINWINDOW_H

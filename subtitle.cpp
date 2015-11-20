@@ -1,44 +1,61 @@
 #include "subtitle.h"
 
-Subtitle::Subtitle()
+Subtitle::Subtitle(const QString &fileName, QTextCodec *codec)
 {
    qerr = new QTextStream(stderr);
    qout = new QTextStream(stdout);
-   *qerr << "Subtitle::" << "Subtitle# " << endl;
    m_DefaultFont.setPointSize(16);
    m_DefaultColor.setNamedColor("red");
    m_CurrentLine = 1;
    m_LineRegex.setCaseSensitivity(Qt::CaseInsensitive);
-}
+   m_File = new QFile;
 
-
-Subtitle::Subtitle(QString fileName)
-{
-   qerr = new QTextStream(stderr);
-   qout = new QTextStream(stdout);
-   *qerr << "Subtitle::" << "Subtitle: " << "\"" << fileName << "\"" << endl;
-   m_DefaultFont.setPointSize(16);
-   m_DefaultColor.setNamedColor("red");
-   m_CurrentLine = 1;
-   m_LineRegex.setCaseSensitivity(Qt::CaseInsensitive);
-
-   m_File.setFileName(fileName);
-   if( m_File.exists() )
+   *qerr << "Subtitle::Subtitle: " << endl;
+   if(fileName == 0)
    {
-      m_File.open(QIODevice::ReadWrite);
+      int n = 0;
+      QString tempFileName = QDir::tempPath() + "/" + "subtitle%1.srt";
+      QFile file;
+      file.setFileName( tempFileName.arg(n) );
+      while( file.exists() )
+      {
+         file.setFileName( tempFileName.arg(++n) );
+      }
+      m_File->setFileName( file.fileName() );
+
+      //creating first line:
+      m_ShowTimeList.append(QTime(0, 0, 0, 0));
+      m_HideTimeList.append(QTime(0, 0, 5, 0));
+      m_DurationTimeList.append(QTime(0, 0, 5, 0));
+      m_FontList.append(m_DefaultFont);
+      m_ColorList.append(m_DefaultColor);
+      m_TextList.append("Text");
+      m_SrtLines.append(
+               m_ShowTimeList.first().toString("hh:mm:ss,zzz") + " --> " + m_HideTimeList.first().toString("hh:mm:ss,zzz") + "\n" +
+               "<font face=\"" + m_DefaultFont.family() + "\" size=" + QString::number(m_DefaultFont.pointSize()) + " color=\"" + m_DefaultColor.name(QColor::HexRgb) +
+               "\">Text</font>"
+               );
+      m_LineCount = 1;
    }
    else
    {
-      *qerr << "Subtitle::" << "Subtitle# " << "Warning: file doesn't exist or cannot be accessed." << endl;
+      m_File->setFileName(fileName);
    }
+   *qerr << "Subtitle::" << "Subtitle: " << "\"" << m_File->fileName() << "\"" << endl;
+
+   if(m_SrtLines.isEmpty())
+      load(codec);
+   else
+      save();
 }
 
 
 Subtitle::~Subtitle()
 {
-   if(m_File.exists())
-      m_File.remove();
+   *qerr << "Subtitle::~Subtitle: " << endl;
+   //m_File->remove();
 }
+
 
 
 
@@ -46,6 +63,12 @@ Subtitle::~Subtitle()
 
 
 
+
+
+QString Subtitle::fileName()
+{
+   return m_File->fileName();
+}
 
 
 QString &Subtitle::text()
@@ -115,9 +138,14 @@ quint64 Subtitle::getCurrentLine() const
 
 
 
-void Subtitle::setFile(const QFile &file)
+void Subtitle::setFileAddress(const QString &address)
 {
-   m_File.setFileName(file.fileName());
+   if(address == m_File->fileName())
+      return;
+
+   removeAll();
+   m_File->setFileName(address);
+   load();
 }
 
 
@@ -166,34 +194,65 @@ void Subtitle::setCurrentLine(quint64 lineNumber)
 }
 
 
-void Subtitle::insertLine(quint64 afterNumber, QString text)
-{/*
-   m_CurrentLine = afterNumber+1;
-   SubtitleLine subLine;
-   if(!text.isEmpty())
-      subLine.text = text;
-   subLine.font = m_DefaultFont;
-   subLine.color = m_DefaultColor;
-   m_SubtitleLinesList.insert(afterNumber-1, subLine);
+void Subtitle::setDefaultFont(const QFont &font)
+{
+   *qerr << "Subtitle::setDefaultFont: " << font.family() << ", " << QString::number(font.pointSize()) << endl;
+   m_DefaultFont = font;
+}
+
+
+void Subtitle::setDefaultColor(const QColor& color)
+{
+   *qerr << "Subtitle::setDefaultColor: " << color.name(QColor::HexRgb) << endl;
+   m_DefaultColor = color;
 }
 
 
 void Subtitle::removeLine(quint64 lineNumber)
 {
-   m_CurrentLine = lineNumber;
-   m_SubtitleLinesList.removeAt(lineNumber-1);
+   lineNumber--;
+   m_ShowTimeList.removeAt(lineNumber);
+   m_HideTimeList.removeAt(lineNumber);
+   m_DurationTimeList.removeAt(lineNumber);
+   m_FontList.removeAt(lineNumber);
+   m_ColorList.removeAt(lineNumber);
+   m_TextList.removeAt(lineNumber);
+   m_SrtLines.removeAt(lineNumber);
+   --m_LineCount;
+   save();
 }
 
 
-void Subtitle::clear()
+void Subtitle::removeAll()
 {
-   m_CurrentLine = 1;
-   m_LineCount = 0;
-   m_DefaultColor = QColor();
-   m_DefaultFont = QFont();
-   m_SubtitleFile.setFileName("");
-   m_SubtitleLinesList.clear();
-   */
+   QTime showTime, hideDurationTime;
+   showTime.setHMS(0, 0, 0, 0);
+   hideDurationTime.setHMS(0, 0, 1, 0);
+   QFont font(m_FontList.at(m_CurrentLine - 1));
+   QColor color(m_ColorList.at(m_CurrentLine - 1));
+   QString text = "text";
+
+   m_ShowTimeList.clear();
+   m_HideTimeList.clear();
+   m_DurationTimeList.clear();
+   m_FontList.clear();
+   m_ColorList.clear();
+   m_TextList.clear();
+   m_SrtLines.clear();
+
+   m_LineCount = 1;
+   m_ShowTimeList.append(showTime);
+   m_HideTimeList.append(hideDurationTime);
+   m_DurationTimeList.append(hideDurationTime);
+   m_FontList.append(font);
+   m_ColorList.append(color);
+   m_TextList.append(text);
+   m_SrtLines.append(
+            showTime.toString("hh:mm:ss,zzz") + " --> " + hideDurationTime.toString("hh:mm:ss,zzz") + "\n" +
+            "<font face=\"" + font.family() + "\" size=" + QString::number(font.pointSize()) + " color=\"" + color.name(QColor::HexRgb) +
+            "\">" + text + "</font>"
+            );
+   save();
 }
 
 
@@ -206,7 +265,9 @@ void Subtitle::clear()
 
 bool Subtitle::load(QTextCodec *textCodec)
 {
-   QTextStream input(&m_File);
+   if(m_File->isOpen() == false)
+      m_File->open(QIODevice::ReadOnly);
+   QTextStream input(m_File);
    if(textCodec != 0)
    {
       input.setCodec(textCodec);
@@ -261,17 +322,17 @@ bool Subtitle::load(QTextCodec *textCodec)
 
 bool Subtitle::save()
 {
-   *qerr << "Subtitle::" << "saveSubtitle: " << m_File.fileName() << endl;
-   m_File.open(QIODevice::WriteOnly | QIODevice::Truncate);
-   m_File.resize(0);
-   QTextStream output(&m_File);
+   *qerr << "Subtitle::" << "save: " << m_File->fileName() << endl;
+   m_File->open(QIODevice::WriteOnly | QIODevice::Truncate);
+   m_File->resize(0);
+   QTextStream output(m_File);
    output.setCodec( QTextCodec::codecForName("UTF-8") );
    QString srtText;
    for(int i = 0; i < m_LineCount; ++i)
       srtText += QString::number(i+1) + "\n" + m_SrtLines[i] + "\n\n";
    srtText.chop(2);
    output << srtText;
-   *qerr << "Subtitle::" << "saveSubtitle# " << "file saved" << endl;
+   *qerr << "Subtitle::" << "save: " << "file saved" << endl;
    return true;
 }
 

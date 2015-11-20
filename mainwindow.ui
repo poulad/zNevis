@@ -3,7 +3,7 @@
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
   <property name="windowModality">
-   <enum>Qt::ApplicationModal</enum>
+   <enum>Qt::NonModal</enum>
   </property>
   <property name="enabled">
    <bool>true</bool>
@@ -22,6 +22,9 @@
   <property name="windowIcon">
    <iconset>
     <normaloff>icons/ffmpeg_large.png</normaloff>icons/ffmpeg_large.png</iconset>
+  </property>
+  <property name="unifiedTitleAndToolBarOnMac">
+   <bool>false</bool>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout_6" stretch="5,1">
@@ -399,16 +402,17 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionNewSubtitle"/>
    <addaction name="actionOpenSubtitle"/>
    <addaction name="actionOpenVideo"/>
    <addaction name="separator"/>
    <addaction name="actionConvert"/>
    <addaction name="separator"/>
-   <addaction name="actionExit"/>
+   <addaction name="actionQuit"/>
   </widget>
   <widget class="QDockWidget" name="dockWidget">
    <property name="enabled">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
    <property name="floating">
     <bool>false</bool>
@@ -426,7 +430,7 @@
     <number>4</number>
    </attribute>
    <widget class="QWidget" name="dockWidgetContents">
-    <layout class="QHBoxLayout" name="horizontalLayout_8" stretch="1,5">
+    <layout class="QHBoxLayout" name="horizontalLayout_8" stretch="0,0,1">
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_7">
        <item>
@@ -759,6 +763,79 @@
       </layout>
      </item>
      <item>
+      <layout class="QVBoxLayout" name="verticalLayout_3">
+       <item>
+        <layout class="QGridLayout" name="gridLayout_2">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label">
+           <property name="text">
+            <string>X1:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QSpinBox" name="spinBox"/>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>Y1:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QSpinBox" name="spinBox_2"/>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="checkBox">
+         <property name="text">
+          <string>Moves</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QGridLayout" name="gridLayout_3">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_3">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>X2:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QSpinBox" name="spinBox_3">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_4">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>Y2:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QSpinBox" name="spinBox_4">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </item>
+     <item>
       <layout class="QVBoxLayout" name="verticalLayout_8">
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="1,0">
@@ -770,6 +847,7 @@
            <property name="cursor">
             <cursorShape>ArrowCursor</cursorShape>
            </property>
+           <zorder></zorder>
           </widget>
          </item>
          <item>
@@ -880,6 +958,39 @@
     </layout>
    </widget>
   </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1034</width>
+     <height>19</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menu_Subtitle">
+    <property name="title">
+     <string>S&amp;ubtitle</string>
+    </property>
+    <widget class="QMenu" name="menu_Recent_subtitles">
+     <property name="title">
+      <string>&amp;Recent subtitles</string>
+     </property>
+     <addaction name="action_1"/>
+     <addaction name="action_2"/>
+    </widget>
+    <addaction name="actionNewSubtitle"/>
+    <addaction name="actionOpenSubtitle"/>
+    <addaction name="menu_Recent_subtitles"/>
+   </widget>
+   <widget class="QMenu" name="menu_Video">
+    <property name="title">
+     <string>&amp;Video</string>
+    </property>
+    <addaction name="actionOpenVideo"/>
+   </widget>
+   <addaction name="menu_Video"/>
+   <addaction name="menu_Subtitle"/>
+  </widget>
   <action name="actionOpenSubtitle">
    <property name="enabled">
     <bool>true</bool>
@@ -889,19 +1000,28 @@
      <normaloff>:/Breeze/icons/open_document.svg</normaloff>:/Breeze/icons/open_document.svg</iconset>
    </property>
    <property name="text">
-    <string>&amp;Subtitle</string>
+    <string>&amp;Open</string>
+   </property>
+   <property name="toolTip">
+    <string>Open an existing subtitle file</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+O</string>
    </property>
   </action>
-  <action name="actionExit">
+  <action name="actionQuit">
    <property name="icon">
     <iconset resource="zNevis.qrc">
      <normaloff>:/Breeze/icons/exit.svg</normaloff>:/Breeze/icons/exit.svg</iconset>
    </property>
    <property name="text">
-    <string>&amp;Exit</string>
+    <string>&amp;Quit</string>
+   </property>
+   <property name="toolTip">
+    <string>Quit application</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
    </property>
   </action>
   <action name="actionConvert">
@@ -921,7 +1041,7 @@
   </action>
   <action name="actionOpenVideo">
    <property name="enabled">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
    <property name="icon">
     <iconset resource="zNevis.qrc">
@@ -937,6 +1057,31 @@
     <string>Ctrl+Shift+O</string>
    </property>
   </action>
+  <action name="actionNewSubtitle">
+   <property name="icon">
+    <iconset resource="zNevis.qrc">
+     <normaloff>:/Breeze/icons/new_document.svg</normaloff>:/Breeze/icons/new_document.svg</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;New</string>
+   </property>
+   <property name="toolTip">
+    <string>Create a blank subtitle file</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+N</string>
+   </property>
+  </action>
+  <action name="action_1">
+   <property name="text">
+    <string>&amp;1 </string>
+   </property>
+  </action>
+  <action name="action_2">
+   <property name="text">
+    <string>&amp;2 </string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources>
@@ -944,7 +1089,7 @@
  </resources>
  <connections>
   <connection>
-   <sender>actionExit</sender>
+   <sender>actionQuit</sender>
    <signal>triggered(bool)</signal>
    <receiver>MainWindow</receiver>
    <slot>close()</slot>

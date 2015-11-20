@@ -1,14 +1,21 @@
 #include "mplayercontrol.h"
 
-MplayerControl::MplayerControl(QObject *parent)
-   : QObject(parent)
+MplayerControl::MplayerControl(const QString &mplayerAddress, const QString &videoAddress, QObject *parent)
+   : QObject(parent) , m_VideoAddress(videoAddress), m_MplayerAddress(mplayerAddress)
 {
    qDebug() << "MplayerControl::MplayerControl: ";
+
    m_VideoIdString = new QString();
-   m_RegexPosition = new QRegExp( "^A:\\s*\\d+[.]?\\d*\\s+V:\\s*(\\d+)(?:[.,]?(\\d+))\\s+", Qt::CaseInsensitive);
+   m_RegexPosition.setPattern("^A:\\s*\\d+[.]?\\d*\\s+V:\\s*(\\d+)(?:[.,]?(\\d+))\\s+");
+   m_RegexPosition.setCaseSensitivity(Qt::CaseInsensitive);
    m_RegexLength = new QRegExp("ID_LENGTH=(\\d+)(?:[,.](\\d+))?", Qt::CaseInsensitive);
 
-   m_Process = new QProcess(parent);
+   m_SubtitleAddress.clear();
+   m_WinId.clear();
+   updateArgsList();
+
+   m_Process = 0;
+   m_IdentifyProcess = 0;
 }
 
 
@@ -47,32 +54,35 @@ void MplayerControl::setMplayerAddress(const QString &address)
 {
    qDebug() << "MplayerControl::setMplayerAddress: ";
    m_MplayerAddress = address;
-   m_Process->setProgram(m_MplayerAddress);
-   startChecking();
+   m_Process->setProgram(address);
+}
+
+
+void MplayerControl::setWinId(const QString &winId)
+{
+   m_WinId = winId;
+   updateArgsList();
 }
 
 
 void MplayerControl::setVideoFile(const QString &address)
 {
    qDebug() << "MplayerControl::setVideoFile: ";
-   /*
-   if(m_Process->isOpen())
-   {
-      quit();
-      m_Process->close();
-   }*/
+   quit();
    m_VideoAddress = address;
-   m_Args.clear();
-   m_Args << m_VideoAddress << "-identify" << "-endpos" << "0";
-   m_Process->setArguments(m_Args);
-   connect(m_Process, SIGNAL(readyRead()), this, SLOT(readVideoId()));
-   m_Process->start();
+   updateArgsList();
 }
+
 
 void MplayerControl::setSubtitleFile(const QString &address)
 {
    qDebug() << "MplayerControl::setSubtitleFile: " << address;
    m_SubtitleAddress = address;
+   updateArgsList();
+   if(m_Process->isWritable() == true)
+   {
+      updateSubtitle();
+   }
 }
 
 
@@ -83,29 +93,23 @@ void MplayerControl::setSubtitleFile(const QString &address)
 
 
 
-void MplayerControl::locateMplayer()
+void MplayerControl::identifyVideo()
 {
-   m_MplayerAddress = QStandardPaths::findExecutable("mplayer");
-   if(m_MplayerAddress.isEmpty())
+   if(m_IdentifyProcess == 0)
    {
-      m_MplayerAddress = QStandardPaths::findExecutable("mplayer", QStringList(":/mplayer/"));
-      if(m_MplayerAddress.isEmpty())
-      {
-         m_ErrorLog = "MplayerControl::MplayerControl: Failed to find mplayer executable";
-         qDebug() << m_ErrorLog;
-         emit mplayerCrashed(&m_ErrorLog);
-      }
-      else
-      {
-         m_Process->setProgram(m_MplayerAddress);
-         startChecking();
-      }
+      m_IdentifyProcess = new QProcess(this);
+      m_IdentifyProcess->setProgram(m_MplayerAddress);
    }
-   else
-   {
-      m_Process->setProgram(m_MplayerAddress);
-      startChecking();
-   }
+   QStringList identifyArgs;
+   identifyArgs
+         << "-identify"
+         << "-endpos"
+         << "0"
+         << m_VideoAddress
+            ;
+   m_IdentifyProcess->setArguments(identifyArgs);
+   connect(m_IdentifyProcess, SIGNAL(finished(int)), this, SLOT(readVideoId()));
+   m_IdentifyProcess->start(QIODevice::ReadOnly);
 }
 
 
@@ -119,8 +123,28 @@ void MplayerControl::locateMplayer()
 
 void MplayerControl::playPause()
 {
-   m_Command = "p";
-   sendCommand();
+   qDebug() << "MplayerControl::playPause: ";
+   if( m_Process == 0 )
+   {
+      m_Process = new QProcess(this);
+      m_Process->setProgram( m_MplayerAddress );
+      m_Process->setArguments(m_ArgsList);
+      QString str = m_MplayerAddress;
+      foreach(QString s, m_ArgsList)
+         str += " " + s;
+      qDebug() << str;
+      emit mplayerStdOutErr( str );
+      connect(m_Process, SIGNAL(readyReadStandardOutput()), this, SLOT(readStdOutErr()));
+      connect(m_Process, SIGNAL(readyReadStandardError()), this, SLOT(readStderr()));
+      m_Process->start(QIODevice::ReadWrite);
+      m_IsPlaying = true;
+   }
+   else
+   {
+      m_Command = "p";
+      sendCommand();
+      //m_IsPlaying = !m_IsPlaying;
+   }
 }
 
 
@@ -156,12 +180,13 @@ void MplayerControl::seekTo(quint64 msec)
 void MplayerControl::readStderr()
 {
    QString stderrString = m_Process->readAllStandardError();
-   //qDebug() << stderrString;
-   if( stderrString.contains(*m_RegexPosition) )
+
+   if( stderrString.contains(m_RegexPosition) )
    {
-      quint64 sec = m_RegexPosition->cap(1).toInt();
+         qDebug() << stderrString;
+      quint64 sec = m_RegexPosition.cap(1).toInt();
       bool ok = true;
-      quint64 msec = m_RegexPosition->cap(2).toInt(&ok);
+      quint64 msec = m_RegexPosition.cap(2).toInt(&ok);
       if(ok == false)
          msec = 0;
       emit positionChanged( sec, msec );
@@ -170,15 +195,19 @@ void MplayerControl::readStderr()
 }
 
 
-void MplayerControl::readStdout()
+void MplayerControl::readStdOutErr()
 {
+   QString str = m_Process->readAll();
+   qDebug() << "MplayerControl::readStdOutErr: ";
 
+   emit mplayerStdOutErr(str);
 }
 
 
 void MplayerControl::updateSubtitle()
 {
-   //qDebug() << "MplayerControl::" << "updateSubtitle# ";
+   qDebug() << "MplayerControl::updateSubtitle: ";
+
    m_Command = "sub_remove 0\r\n";
    sendCommand();
    m_Command = "sub_file -1\r\n";
@@ -190,48 +219,35 @@ void MplayerControl::updateSubtitle()
 }
 
 
-void MplayerControl::readVideoId()
-{
-   qDebug() << "MplayerControl::readVideoId: ";
-   QString str = m_Process->readAll();
-   m_VideoIdString->append(str);
-   if(m_VideoIdString->contains("ID_EXIT=EOF", Qt::CaseInsensitive))
-   {
-      identifyVideo();
-   }
-}
-
-
-void MplayerControl::startPlaying(const QString &winId)
-{
-   if(m_Process->isOpen())
-   {
-      quit();
-      m_Process->close();
-   }
-   m_WinId = winId;
-   m_Args.removeLast(); // 0
-   m_Args.removeLast(); // -endpos
-   m_Args.removeLast(); // -identify
-   m_Args
-         << "-sub"
-         << m_SubtitleAddress
-         << "-slave"
-         << "-osdlevel"
-         << "0"
-         << "-wid" << m_WinId
-            ;
-   m_Process->setArguments(m_Args);
-   connect(m_Process, SIGNAL(readyReadStandardOutput()), this, SLOT(readStdout()));
-   connect(m_Process, SIGNAL(readyReadStandardError()), this, SLOT(readStderr()));
-   m_Process->start();
-}
-
-
 void MplayerControl::sendCommand()
 {
    m_Command += "\r\n";
    m_Process->write(QByteArray(m_Command.toLatin1()));
+}
+
+
+void MplayerControl::updateArgsList()
+{
+   m_ArgsList.clear();
+   m_ArgsList
+         << m_VideoAddress
+         << "-slave"
+         << "-osdlevel"
+         << "0"
+            ;
+
+   if(m_SubtitleAddress.isEmpty() == false)
+      m_ArgsList
+            << "-sub"
+            << m_SubtitleAddress
+               ;
+
+   if(m_WinId.isEmpty() == false)
+      m_ArgsList
+            << "-wid"
+            << m_WinId
+               ;
+   qDebug() << "MplayerControl::updateArgsList: " << m_ArgsList;
 }
 
 
@@ -243,11 +259,12 @@ void MplayerControl::volume(int v)
 }
 
 
-void MplayerControl::identifyVideo()
+void MplayerControl::readVideoId()
 {
-   qDebug() << "MplayerControl::identifyVideo: ";
-   disconnect(m_Process, SIGNAL(readyRead()), this, SLOT(readVideoId()));
-   QStringList list = m_VideoIdString->split("\n");
+   qDebug() << "MplayerControl::readVideoId: ";
+   m_VideoIdList.clear();
+   QString stdOutErr = m_IdentifyProcess->readAll();
+   QStringList list = stdOutErr.split("\n");
    QRegExp regexId( "ID_((?:[A-Z]|_|\\d)*)=((?:\\d|[A-Z]|[a-z]|_|:| |\t|-|\\.)*)", Qt::CaseInsensitive );
    foreach(QString strId, list)
    {
@@ -258,7 +275,10 @@ void MplayerControl::identifyVideo()
             m_VideoIdList.append( regexId.cap(2) );
          }
    }
-   emit videoIdread(m_VideoIdList);
+   emit videoIdChanged(m_VideoIdList);
+   m_IdentifyProcess->close();
+   delete m_IdentifyProcess;
+   m_IdentifyProcess = 0;
 }
 
 
@@ -271,48 +291,7 @@ void MplayerControl::fullScreen()
 
 
 
-/// ------------------------------------------- Private Slots -------------------------------------------
 
 
-
-
-void MplayerControl::checkMplayer(int exitCode, QProcess::ExitStatus status)
-{
-   if(exitCode == 0 && status == QProcess::NormalExit)
-   {
-      qDebug() << "MplayerControl::checkMplayer: exists at \"" + m_MplayerAddress + "\"";
-      m_MplayerExists = true;
-      emit mplayerExists();
-   }
-   else
-   {
-      if(m_MplayerExists == false)
-      {
-         qDebug() << "MplayerControl::checkMplayer: does not exist at \"" + m_MplayerAddress + "\" (process crashed)";
-         m_ErrorLog = m_Process->readAll();
-         emit mplayerCrashed(&m_ErrorLog);
-      }
-      else
-      {
-         m_MplayerExists = false;
-         QString m_MplayerAddress = QStandardPaths::findExecutable("mplayer", QStringList(":/mplayer/"));
-         m_Process->setProgram(m_MplayerAddress);
-         m_Process->start();
-      }
-   }
-}
-
-
-
-
-
-/// ------------------------------------------- Private -------------------------------------------
-void MplayerControl::startChecking()
-{
-   qDebug() << "MplayerControl::startChecking: " << "looking for mplayer in \"" + m_MplayerAddress + "\"";
-   connect(m_Process, SIGNAL(finished(int,QProcess::ExitStatus)), this, SLOT(checkMplayer(int, QProcess::ExitStatus)));
-   m_MplayerExists = true;
-   m_Process->start();
-}
 
 

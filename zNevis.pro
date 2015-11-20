@@ -13,7 +13,9 @@ HEADERS += \
            subtitle.h \
     mplayercontrol.h \
     convertdialog.h \
-    mencodercontrol.h
+    mencodercontrol.h \
+    commandfinder.h \
+    mediaidentifier.h
 
 FORMS += mainwindow.ui \
     convertdialog.ui \
@@ -24,7 +26,9 @@ SOURCES += \
            subtitle.cpp \
     mplayercontrol.cpp \
     convertdialog.cpp \
-    mencodercontrol.cpp
+    mencodercontrol.cpp \
+    commandfinder.cpp \
+    mediaidentifier.cpp
 
 RESOURCES += \
     zNevis.qrc

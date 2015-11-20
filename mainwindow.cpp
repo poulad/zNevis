@@ -15,33 +15,124 @@ MainWindow::MainWindow(QWidget *parent) :
    QMainWindow(parent),
    ui(new Ui::MainWindow)
 {
+   qDebug() << "MainWindow::MainWindow: ";
    ui->setupUi(this);
+   m_Dir = new QDir( QStandardPaths::writableLocation(QStandardPaths::MoviesLocation ) );
+   m_Subtitle = 0;
+   m_MplayerControl = 0;
+   m_OpenSubtitleFileDialog = 0;
+   m_OpenVideoFileDialog = 0;
+   m_ColorDialog = 0;
+
+   ///set Time Spin Boxes to change SECONDS
+   ui->showTimeEdit->setCurrentSectionIndex(2);
+   ui->hideTimeEdit->setCurrentSectionIndex(2);
+   ui->durationTimeEdit->setCurrentSectionIndex(2);
+
+   /// CONNECTIONS:
+   ui->dockWidget->hide();
+   ui->toolBar->setEnabled(true);
+   setEnabled(true);
+
+
+
+
+   /*
    m_MplayerControl = new MplayerControl(this);
    connect(m_MplayerControl, SIGNAL(mplayerCrashed(QString*)), this, SLOT(findMplayer(QString*)));
    connect(m_MplayerControl, SIGNAL(mplayerExists()), this, SLOT(createGui()));
-   m_MplayerControl->locateMplayer();
+   m_MplayerControl->locateMplayer(); */
 }
 
 
 MainWindow::~MainWindow()
 {
-   delete subtitle;
+   qDebug() << "MainWindow::~MainWindow: ";
+   //m_LogDialog.close();
+   delete m_Subtitle;
    delete ui;
+}
+
+
+void MainWindow::on_actionNewSubtitle_triggered()
+{
+   qDebug() << "MainWindow::on_actionNewSubtitle_triggered: ";
+   if(m_Subtitle == 0) // first time
+   {
+      m_Subtitle = new Subtitle();
+      m_SubtitleFile.setFileName(m_Subtitle->fileName());
+   }
+   else
+   {
+      disconnect(ui->tableWidget, SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(changeLineProperties(int,int,int,int)));
+      disconnect(ui->textEdit, SIGNAL(textChanged()), this, SLOT(updateText()));
+      disconnect(ui->fontComboBox, SIGNAL(currentFontChanged(QFont)), this, SLOT(updateFont()));
+      disconnect(ui->sizeSpinBox, SIGNAL(valueChanged(int)), this, SLOT(updateFont()));
+      disconnect(ui->boldCheckBox, SIGNAL(toggled(bool)), this, SLOT(updateFont()));
+      disconnect(ui->italicCheckBox, SIGNAL(toggled(bool)), this, SLOT(updateFont()));
+      disconnect(ui->strikeOutCheckBox, SIGNAL(toggled(bool)), this, SLOT(updateFont()));
+      disconnect(ui->underlineCheckBox, SIGNAL(toggled(bool)), this, SLOT(updateFont()));
+      disconnect(ui->showTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateShowTime(QTime)));
+      disconnect(ui->hideTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateHideTime(QTime)));
+      disconnect(ui->durationTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateDurationTime(QTime)));
+
+      QFont font = ui->fontComboBox->currentFont();
+      font.setPointSize(ui->sizeSpinBox->value());
+      font.setBold(ui->boldCheckBox->isChecked());
+      font.setItalic(ui->italicCheckBox->isChecked());
+      font.setStrikeOut(ui->strikeOutCheckBox->isChecked());
+      font.setUnderline(ui->underlineCheckBox->isChecked());
+      m_Subtitle->setDefaultFont(font);
+      m_Subtitle->setDefaultColor(ui->textEdit->textColor());
+
+      ui->tableWidget->clear();
+      m_Subtitle->removeAll();
+   }
+   m_MplayerControl->setSubtitleFile(m_Subtitle->fileName());
+   importSubtitle();
+   enableSubtitleWidgets(true);
 }
 
 
 void MainWindow::on_actionOpenSubtitle_triggered()
 {
-   m_SubtitleFileDialog->setDirectory(*m_Dir);
-   if(m_SubtitleFileDialog->exec())
+   qDebug() << "MainWindow::on_actionOpenSubtitle_triggered: ";
+   if(m_OpenSubtitleFileDialog == 0)
    {
-      qDebug() << "MainWindow::" << "openSubtitle: " << "Selected File to open:" + m_SubtitleFileDialog->selectedFiles().first();
-      m_SubtitleFile.setFileName( m_SubtitleFileDialog->selectedFiles().first() );
-      subtitle = new Subtitle( m_SubtitleFile.fileName() );
-      subtitle->load();
+      m_OpenSubtitleFileDialog = new QFileDialog(this);
+      m_OpenSubtitleFileDialog->setFileMode(QFileDialog::ExistingFile);
+      m_OpenSubtitleFileDialog->setNameFilter("Sub-Rip subtitle files (*.srt)\nAll files(*.*)");
+   }
+   m_OpenSubtitleFileDialog->setDirectory(*m_Dir);
+   if(m_OpenSubtitleFileDialog->exec())
+   {
+      qDebug() << "MainWindow::" << "openSubtitle: " << "Selected File to open:" + m_OpenSubtitleFileDialog->selectedFiles().first();
+      m_SubtitleFile.setFileName( m_OpenSubtitleFileDialog->selectedFiles().first() );
+      if(m_Subtitle == 0)
+      {
+         m_Subtitle = new Subtitle( m_SubtitleFile.fileName(), QTextCodec::codecForName("utf8") );
+      }
+      else
+      {
+         disconnect(ui->tableWidget, SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(changeLineProperties(int,int,int,int)));
+         disconnect(ui->textEdit, SIGNAL(textChanged()), this, SLOT(updateText()));
+         disconnect(ui->fontComboBox, SIGNAL(currentFontChanged(QFont)), this, SLOT(updateFont()));
+         disconnect(ui->sizeSpinBox, SIGNAL(valueChanged(int)), this, SLOT(updateFont()));
+         disconnect(ui->boldCheckBox, SIGNAL(toggled(bool)), this, SLOT(updateFont()));
+         disconnect(ui->italicCheckBox, SIGNAL(toggled(bool)), this, SLOT(updateFont()));
+         disconnect(ui->strikeOutCheckBox, SIGNAL(toggled(bool)), this, SLOT(updateFont()));
+         disconnect(ui->underlineCheckBox, SIGNAL(toggled(bool)), this, SLOT(updateFont()));
+         disconnect(ui->showTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateShowTime(QTime)));
+         disconnect(ui->hideTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateHideTime(QTime)));
+         disconnect(ui->durationTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateDurationTime(QTime)));
+         ui->tableWidget->clear();
+
+         m_Subtitle->removeAll();
+         m_Subtitle->setFileAddress(m_SubtitleFile.fileName());
+      }
       importSubtitle();
    }
-   *m_Dir = m_SubtitleFileDialog->directory();
+   *m_Dir = m_OpenSubtitleFileDialog->directory();
 }
 
 
@@ -49,30 +140,30 @@ void MainWindow::importSubtitle()
 {
    qDebug() << "MainWindow::importSubtitle: ";
    ui->tableWidget->clearContents();
-   ui->tableWidget->setRowCount( subtitle->lineCount() );
+   ui->tableWidget->setRowCount( m_Subtitle->lineCount() );
    ui->tableWidget->setColumnCount( 4 );
-   for(quint64 i =0; i < subtitle->lineCount(); ++i)
+   for(quint64 i =0; i < m_Subtitle->lineCount(); ++i)
    {
-      subtitle->setCurrentLine(i+1);
-      ui->tableWidget->setItem(i, 0, new QTableWidgetItem(subtitle->showTime().toString("hh:mm:ss,zzz")) );
-      ui->tableWidget->setItem(i, 1, new QTableWidgetItem(subtitle->hideTime().toString("hh:mm:ss,zzz")) );
-      ui->tableWidget->setItem(i , 2, new QTableWidgetItem( subtitle->durationTime().toString("hh:mm:ss,zzz")) );
-      QTableWidgetItem *lineTextItem = new QTableWidgetItem(subtitle->text());
-      lineTextItem->setTextColor( subtitle->color() );
-      lineTextItem->setFont( subtitle->font() );
+      m_Subtitle->setCurrentLine(i+1);
+      ui->tableWidget->setItem(i, 0, new QTableWidgetItem(m_Subtitle->showTime().toString("hh:mm:ss,zzz")) );
+      ui->tableWidget->setItem(i, 1, new QTableWidgetItem(m_Subtitle->hideTime().toString("hh:mm:ss,zzz")) );
+      ui->tableWidget->setItem(i , 2, new QTableWidgetItem( m_Subtitle->durationTime().toString("hh:mm:ss,zzz")) );
+      QTableWidgetItem *lineTextItem = new QTableWidgetItem(m_Subtitle->text());
+      lineTextItem->setTextColor( m_Subtitle->color() );
+      lineTextItem->setFont( m_Subtitle->font() );
       ui->tableWidget->setItem(i, 3, lineTextItem );
    }
    ui->tableWidget->setColumnWidth(3, 700);
 
    //LOADING properties of FIRST line
-   subtitle->setCurrentLine(1);
+   m_Subtitle->setCurrentLine(1);
 
-   m_Text = &subtitle->text();
-   m_Font = &subtitle->font();
-   m_Color = &subtitle->color();
-   m_ShowTime =  &subtitle->showTime();
-   m_HideTime =  &subtitle->hideTime();
-   m_DurationTime =  &subtitle->durationTime();
+   m_Text = &m_Subtitle->text();
+   m_Font = &m_Subtitle->font();
+   m_Color = &m_Subtitle->color();
+   m_ShowTime =  &m_Subtitle->showTime();
+   m_HideTime =  &m_Subtitle->hideTime();
+   m_DurationTime =  &m_Subtitle->durationTime();
 
    ui->tableWidget->setCurrentCell(0, 3);
    ui->tableWidget->currentItem()->setTextColor( *m_Color );
@@ -86,9 +177,6 @@ void MainWindow::importSubtitle()
    ui->hideTimeEdit->setTime( *m_HideTime );
    ui->durationTimeEdit->setTime( *m_DurationTime );
    ui->fontComboBox->setCurrentFont( *m_Font );
-
-   ui->actionOpenSubtitle->setEnabled(false);
-   ui->actionOpenVideo->setEnabled(true);
 
    connect(ui->tableWidget, SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(changeLineProperties(int,int,int,int)));
    connect(ui->textEdit, SIGNAL(textChanged()), this, SLOT(updateText()));
@@ -117,7 +205,7 @@ void MainWindow::changeLineProperties(int currentRow, int currentColumn, int pre
 
    currentColumn = previousColumn + currentColumn;// just to skip Unused warning
 
-   qDebug() <<"changeLineProperties# " << "lineNumber=" <<  "LOADING properties of later selected line#" + QString::number( subtitle->getCurrentLine() );
+   qDebug() <<"changeLineProperties# " << "lineNumber=" <<  "LOADING properties of later selected line#" + QString::number( m_Subtitle->getCurrentLine() );
    disconnect(ui->textEdit, SIGNAL(textChanged()), this, SLOT(updateText()));
    disconnect(ui->fontComboBox, SIGNAL(currentFontChanged(QFont)), this, SLOT(updateFont()));
    disconnect(ui->sizeSpinBox, SIGNAL(valueChanged(int)), this, SLOT(updateFont()));
@@ -129,17 +217,17 @@ void MainWindow::changeLineProperties(int currentRow, int currentColumn, int pre
    disconnect(ui->hideTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateHideTime(QTime)));
    disconnect(ui->durationTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateDurationTime(QTime)));
 
-   subtitle->setCurrentLine(currentRow+1);
+   m_Subtitle->setCurrentLine(currentRow+1);
 
-   m_Color = &subtitle->color();
+   m_Color = &m_Subtitle->color();
    ui->textEdit->setTextColor( *m_Color );
    ui->tableWidget->currentItem()->setTextColor(*m_Color);
 
-   m_Text = &subtitle->text();
+   m_Text = &m_Subtitle->text();
    ui->textEdit->setPlainText(*m_Text);
    ui->tableWidget->currentItem()->setText( *m_Text );
 
-   m_Font = &subtitle->font();
+   m_Font = &m_Subtitle->font();
    ui->fontComboBox->setCurrentFont(*m_Font);
    ui->sizeSpinBox->setValue(m_Font->pointSize());
    ui->boldCheckBox->setChecked(m_Font->bold());
@@ -149,9 +237,9 @@ void MainWindow::changeLineProperties(int currentRow, int currentColumn, int pre
    ui->textEdit->setFont(*m_Font);
    ui->tableWidget->currentItem()->setFont(*m_Font);
 
-   m_ShowTime = &subtitle->showTime();
-   m_HideTime = &subtitle->hideTime();
-   m_DurationTime = &subtitle->durationTime();
+   m_ShowTime = &m_Subtitle->showTime();
+   m_HideTime = &m_Subtitle->hideTime();
+   m_DurationTime = &m_Subtitle->durationTime();
    ui->showTimeEdit->setTime( *m_ShowTime );
    ui->hideTimeEdit->setTime( *m_HideTime );
    ui->durationTimeEdit->setTime( *m_DurationTime );
@@ -177,8 +265,10 @@ void MainWindow::updateText()
    qDebug() << "MainWindow::" << "updateText: ";
    *m_Text = ui->textEdit->toPlainText();
    ui->tableWidget->item(ui->tableWidget->currentRow(), 3)->setText( *m_Text );
-   subtitle->updateLine();
+   m_Subtitle->updateLine();
+   m_MplayerControl->pause();
    m_MplayerControl->updateSubtitle();
+   m_MplayerControl->seekTo(m_VideoPosition->msecsSinceStartOfDay());
 }
 
 
@@ -194,9 +284,11 @@ void MainWindow::updateFont()
 
    ui->textEdit->setFont( *m_Font );
    ui->tableWidget->currentItem()->setFont(*m_Font);
-   subtitle->updateLine( ui->tableWidget->currentRow()+1 );
-   qDebug() << subtitle->font();
+   m_Subtitle->updateLine( ui->tableWidget->currentRow()+1 );
+
+   m_MplayerControl->pause();
    m_MplayerControl->updateSubtitle();
+   m_MplayerControl->seekTo(m_VideoPosition->msecsSinceStartOfDay());
 }
 
 
@@ -221,8 +313,10 @@ void MainWindow::updateShowTime(QTime newShowTime)
    ui->durationTimeEdit->setTime(*m_DurationTime);
    ui->tableWidget->item(ui->tableWidget->currentRow(), 0)->setText( m_ShowTime->toString("hh:mm:ss,zzz") );
    ui->tableWidget->item( ui->tableWidget->currentRow(), 2 )->setText( m_DurationTime->toString("hh:mm:ss,zzz") );
-   subtitle->updateLine();
+   m_Subtitle->updateLine();
+   m_MplayerControl->pause();
    m_MplayerControl->updateSubtitle();
+   m_MplayerControl->seekTo(m_VideoPosition->msecsSinceStartOfDay());
    qDebug() << "showTime=" << m_ShowTime->toString("hh:mm:ss,zzz");
    qDebug() << "durationTime=" << m_DurationTime->toString("hh:mm:ss,zzz");
 }
@@ -249,8 +343,10 @@ void MainWindow::updateHideTime(QTime newHideTime)
    ui->durationTimeEdit->setTime(*m_DurationTime);
    ui->tableWidget->item(ui->tableWidget->currentRow(), 1)->setText( m_HideTime->toString("hh:mm:ss,zzz") );
    ui->tableWidget->item(ui->tableWidget->currentRow(), 2)->setText( m_DurationTime->toString("hh:mm:ss,zzz") );
-   subtitle->updateLine();
+   m_Subtitle->updateLine();
+   m_MplayerControl->pause();
    m_MplayerControl->updateSubtitle();
+   m_MplayerControl->seekTo(m_VideoPosition->msecsSinceStartOfDay());
    qDebug() << "hideTime=" << m_HideTime->toString("hh:mm:ss,zzz");
    qDebug() << "durationTime=" << m_DurationTime->toString("hh:mm:ss,zzz");
 }
@@ -271,8 +367,10 @@ void MainWindow::updateDurationTime(QTime newDurationTime)
    ui->hideTimeEdit->setTime(*m_HideTime);
    ui->tableWidget->item(ui->tableWidget->currentRow(), 2)->setText( m_DurationTime->toString("hh:mm:ss,zzz") );
    ui->tableWidget->item( ui->tableWidget->currentRow(), 1 )->setText( m_HideTime->toString("hh:mm:ss,zzz") );
-   subtitle->updateLine();
+   m_Subtitle->updateLine();
+   m_MplayerControl->pause();
    m_MplayerControl->updateSubtitle();
+   m_MplayerControl->seekTo(m_VideoPosition->msecsSinceStartOfDay());
    qDebug() << "durationTime=" << m_DurationTime->toString("hh:mm:ss,zzz");
    qDebug() << "hideTime=" << m_HideTime->toString("hh:mm:ss,zzz");
 }
@@ -366,52 +464,47 @@ void MainWindow::findMplayer(QString *errorLog)
 }
 
 
-void MainWindow::createGui()
-{
-   qDebug() << "MainWindow::createGui: ";
-   m_SubtitleFileDialog = new QFileDialog(this);
-   m_SubtitleFileDialog->setFileMode(QFileDialog::ExistingFile);
-   m_SubtitleFileDialog->setNameFilter("Sub-Rip subtitle files (*.srt)\nAll files(*.*)");
-   m_VideoFileDialog = new QFileDialog(this);
-   m_VideoFileDialog->setFileMode(QFileDialog::ExistingFile);
-   m_VideoFileDialog->setWindowTitle("Open video");
-   m_VideoFileDialog->setNameFilter("OOG, MP4, MKV (*.ogg *.mp4 *.mkv)\nAll Files (*.*)");
-   m_Dir = new QDir( QStandardPaths::writableLocation(QStandardPaths::MoviesLocation ) );
-   m_ColorDialog = 0;
-
-   ///set Time Spin Boxes to change SECONDS
-   ui->showTimeEdit->setCurrentSectionIndex(2);
-   ui->hideTimeEdit->setCurrentSectionIndex(2);
-   ui->durationTimeEdit->setCurrentSectionIndex(2);
-
-   /// CONNECTIONS:
-   ui->dockWidget->hide();
-   ui->toolBar->setEnabled(true);
-   setEnabled(true);
-   show();
-}
-
-
 void MainWindow::on_actionOpenVideo_triggered()
 {
    qDebug() << "MainWindow::on_actionOpenVideo_triggered: ";
-   m_VideoFileDialog->setDirectory( *m_Dir );
-   if( m_VideoFileDialog->exec() )
+   if(m_OpenVideoFileDialog == 0)
+   {
+      m_OpenVideoFileDialog = new QFileDialog(this);
+      m_OpenVideoFileDialog->setFileMode(QFileDialog::ExistingFile);
+      m_OpenVideoFileDialog->setWindowTitle("Open video");
+      m_OpenVideoFileDialog->setNameFilter("OOG, MP4, MKV (*.ogg *.mp4 *.mkv)\nAll Files (*.*)");
+   }
+   m_OpenVideoFileDialog->setDirectory( *m_Dir );
+   if( m_OpenVideoFileDialog->exec() )
    {
       setEnabled(false);
-      connect(m_MplayerControl, SIGNAL(videoIdread(QStringList&)), this, SLOT(importVideoId(QStringList &)));
-      m_VideoFile.setFileName( m_VideoFileDialog->selectedFiles().first() );
-      m_MplayerControl->setSubtitleFile(m_SubtitleFile.fileName());
-      m_MplayerControl->setVideoFile(m_VideoFile.fileName());
+      m_VideoFile.setFileName( m_OpenVideoFileDialog->selectedFiles().first() );
+      if(m_MplayerControl == 0)
+      {
+         m_MplayerControl = new MplayerControl("mplayer", m_VideoFile.fileName(), this);
+         m_MplayerControl->setWinId( QString::number( ui->mplayerWidget->winId() ) );
+      }
+      else
+      {
+         m_MplayerControl->setVideoFile(m_VideoFile.fileName());
+      }
+      //m_LogDialog.show();
+      //connect(m_MplayerControl, SIGNAL(mplayerStdOutErr(const QString&)), this, SLOT(readLog(QString)));
+      connect(m_MplayerControl, SIGNAL(videoIdChanged(QStringList&)), this, SLOT(importVideoId(QStringList &)));
+      connect(ui->playPauseButton, SIGNAL(clicked(bool)), m_MplayerControl, SLOT(playPause()));
+      connect(ui->volumeSlider, SIGNAL(valueChanged(int)), m_MplayerControl, SLOT(volume(int)));
+      connect(m_MplayerControl, SIGNAL(positionChanged(quint64,quint64)), this, SLOT(setVideoPosition(quint64, quint64)));
+      if(m_SubtitleFile.exists())
+         m_MplayerControl->setSubtitleFile(m_Subtitle->fileName());
+      m_MplayerControl->identifyVideo();
    }
-   *m_Dir = m_VideoFileDialog->directory();
+   *m_Dir = m_OpenVideoFileDialog->directory();
 }
 
 
 void MainWindow::importVideoId(QStringList &videoIdList)
 {
    qDebug() << "MainWindow::importVideoId: ";
-   disconnect(m_MplayerControl, SIGNAL(videoIdread(QStringList&)), this, SLOT(importVideoId(QStringList &)));
 
    QString id;
    for(int i = 0; i < videoIdList.size(); i +=2)
@@ -471,19 +564,11 @@ void MainWindow::importVideoId(QStringList &videoIdList)
          ui->audioCodecLabel->setText(videoIdList[i+1]);
       }
    }
-
    ui->videoSizeLabel->setText( QString::number(m_VideoWidth) + "x" + QString::number(m_VideoHeight) );
    m_VideoPosition = new QTime();
-   connect(ui->playPauseButton, SIGNAL(clicked(bool)), m_MplayerControl, SLOT(playPause()));
-   connect(ui->volumeSlider, SIGNAL(valueChanged(int)), m_MplayerControl, SLOT(volume(int)));
-   connect(m_MplayerControl, SIGNAL(positionChanged(quint64,quint64)), this, SLOT(setVideoPosition(quint64, quint64)));
-   m_MplayerControl->startPlaying( QString::number(ui->mplayerWidget->winId()) );
+
    ui->dockWidget->show();
-   ui->dockWidget->setEnabled(true);
-   ui->actionOpenSubtitle->setEnabled(false);
-   ui->actionOpenVideo->setEnabled(false);
-   ui->actionConvert->setEnabled(true);
-   enableItems(true);
+   setEnabled(true);
 }
 
 
@@ -520,13 +605,21 @@ void MainWindow::on_colorButton_clicked()
       ui->textEdit->setPlainText("Plain Text");
       ui->textEdit->setPlainText(text);
       ui->tableWidget->currentItem()->setTextColor(*m_Color);
-      subtitle->updateLine();
+      m_Subtitle->updateLine();
+      m_MplayerControl->pause();
       m_MplayerControl->updateSubtitle();
+      m_MplayerControl->seekTo(m_VideoPosition->msecsSinceStartOfDay());
    }
 }
 
 
-void MainWindow::enableItems(bool b)
+void MainWindow::readLog(QString log)
+{
+   //m_LogDialog.append(log);
+}
+
+
+void MainWindow::enableSubtitleWidgets(bool b)
 {
    ui->tableWidget->setEnabled(b);
    ui->showLabel->setEnabled(b);
@@ -537,6 +630,8 @@ void MainWindow::enableItems(bool b)
    ui->durationTimeEdit->setEnabled(b);
    ui->fontLabel->setEnabled(b);
    ui->fontComboBox->setEnabled(b);
+   ui->sizeLabel->setEnabled(b);
+   ui->sizeSpinBox->setEnabled(b);
    ui->boldCheckBox->setEnabled(b);
    ui->italicCheckBox->setEnabled(b);
    ui->underlineCheckBox->setEnabled(b);
@@ -544,6 +639,8 @@ void MainWindow::enableItems(bool b)
    ui->colorButton->setEnabled(b);
    ui->textEdit->setEnabled(b);
 }
+
+
 
 
 

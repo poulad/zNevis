@@ -12,7 +12,7 @@ class MplayerControl : public QObject
 {
    Q_OBJECT
 public:
-   explicit MplayerControl(QObject *parent);
+   explicit MplayerControl(const QString &mplayerAddress, const QString &videoAddress, QObject *parent);
    ~MplayerControl();
 
    // Get functions:
@@ -21,18 +21,19 @@ public:
 
    //Set functions:
    void setMplayerAddress(const QString& address);
+   void setWinId(const QString& winId);
    void setVideoFile(const QString& address);
    void setSubtitleFile(const QString& address);
 
    //Other
-   void locateMplayer();
-   void startPlaying(const QString &winId);
+   void identifyVideo();
 
 signals:
    void mplayerExists();
+   void mplayerStdOutErr(const QString&);
    void mplayerCrashed(QString*);
    void positionChanged(quint64 second, quint64 msec);
-   void videoIdread(QStringList &videoIdList);
+   void videoIdChanged(QStringList &videoIdList);
 
 public slots:
    void playPause();
@@ -45,21 +46,24 @@ public slots:
 
 private slots:
    void readVideoId();
-   void readStdout();
+   void readStdOutErr();
    void readStderr();
-   void checkMplayer(int, QProcess::ExitStatus);
 
 private:
-   void startChecking();
-   void identifyVideo();
    inline void sendCommand();
+   inline void updateArgsList();
 
-   QStringList m_Args;
+   bool m_IsPlaying;
+
+   QStringList m_ArgsList;
    QStringList m_VideoIdList;
 
    QString m_WinId;
    QString *m_VideoIdString;
+
    QProcess *m_Process;
+   QProcess *m_IdentifyProcess;
+
    QString m_Command;
    QString m_VideoAddress;
    QString m_SubtitleAddress;
@@ -67,10 +71,8 @@ private:
    QString m_ErrorLog;
    QString m_MplayerAddress;
 
-   bool m_MplayerExists;
-
    QRegExp *m_RegexLength;
-   QRegExp *m_RegexPosition;
+   QRegExp m_RegexPosition;
 };
 
 #endif // MPLAYERCONTROL_H

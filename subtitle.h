@@ -3,6 +3,7 @@
 #include <QtCore>
 #include <QStringList>
 #include <QFile>
+#include <QString>
 #include <QTemporaryFile>
 #include <QTextCodec>
 #include <QTextStream>
@@ -15,12 +16,12 @@ class Subtitle
 {
 
 public:
-   Subtitle();
-   Subtitle(QString subtitleFileName);
+   Subtitle(const QString &subtitleFileName = 0, QTextCodec *codec = 0);
    ~Subtitle();
 
+
    /// Get Functions:
-   QString getSubtitleFileName();
+   QString fileName();
    QString &text();
    const QFont &getFont();
    QFont &font();
@@ -34,17 +35,20 @@ public:
 
 
    /// Set Functions:
-   void setFile(const QFile &file);
+   void setFileAddress(const QString &address);
    void setText(const QString &text);
    void setFont(const QFont &font);
    void setColor(const QColor &color);
    void setShowTime(const QTime &showTime);
    void setHideTime(const QTime &hideTime);
    void setDurationTime(const QTime &durationTime);
+
    void setCurrentLine(quint64 lineNumber);
-   void insertLine(quint64 afterNumber, QString text = 0); // argument of value 0, means at last
+   void setDefaultFont(const QFont& font);
+   void setDefaultColor(const QColor& color);
+   void insertLine(quint64 afterNumber, QString text = 0); // argument of value 0, means append
    void removeLine(quint64 lineNumber);
-   void clear();
+   void removeAll();
 
    /// Manipulate Functions:
    bool load(QTextCodec *textCodec = 0);
@@ -66,8 +70,7 @@ private:
 
    QFont m_DefaultFont;
    QColor m_DefaultColor;
-   QFile m_File;
-   QTemporaryFile m_TempFile;
+   QFile *m_File;
    quint64 m_LineCount;
 
    quint64 m_CurrentLine;
