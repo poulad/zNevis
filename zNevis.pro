@@ -14,7 +14,6 @@ HEADERS += \
     mplayercontrol.h \
     convertdialog.h \
     mencodercontrol.h \
-    commandfinder.h \
     mediaidentifier.h
 
 FORMS += mainwindow.ui \
@@ -27,7 +26,6 @@ SOURCES += \
     mplayercontrol.cpp \
     convertdialog.cpp \
     mencodercontrol.cpp \
-    commandfinder.cpp \
     mediaidentifier.cpp
 
 RESOURCES += \
