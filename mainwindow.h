@@ -10,8 +10,11 @@
 #include <QFileDialog>
 #include <QFile>
 #include <QDir>
-#include "mplayercontrol.h"
+#include "mplayerwidget.h"
+#include "mencodercontrol.h"
 #include <QMessageBox>
+#include <QInputDialog>
+
 
 //#include <QTextEdit>
 
@@ -29,35 +32,61 @@ public:
    ~MainWindow();
 
 private slots:
-   void findMplayer(QString*);
-   void importVideoId(QStringList &videoIdList);
-
    void changeLineProperties(int,int,int, int);
 
    void updateText();
-   void updateFont();
-   void updateShowTime(QTime);
-   void updateHideTime(QTime);
-   void updateDurationTime(QTime);
-   void importSubtitle();
+   void updatePosition();
+
    void playPreviousLine();
    void playNextLine();
 
-   void setVideoPosition(quint64, quint64);
+   void setVideoPosition(int);
    void seekSlider(int);
 
-   void on_actionNewSubtitle_triggered();
-   void on_actionOpenSubtitle_triggered();
+   // Controlling mplayer:
    void on_actionOpenVideo_triggered();
+   void on_actionConvert_triggered();
+
    void on_positionSlider_sliderPressed();
    void on_positionSlider_sliderReleased();
-   void on_actionConvert_triggered();
+
    void on_colorButton_clicked();
 
    void readLog(QString);
 
+   // mplayer
+   void importVideoId(const MediaID* mediaID);
+
+   // Editing Subtitle:
+   void importSubtitle();
+   void on_actionNewSubtitle_triggered();
+   void on_actionOpenSubtitle_triggered();
+   void on_showTimeEdit_timeChanged(const QTime &time);
+   void on_hideTimeEdit_timeChanged(const QTime &time);
+   void on_actionSetLineShow_triggered();
+   void on_actionSetLineHide_triggered();
+   void on_fontComboBox_currentFontChanged(const QFont &f);
+   void on_sizeSpinBox_valueChanged(int arg1);
+   void on_buttonBold_toggled(bool checked);
+   void on_buttonItalic_toggled(bool checked);
+   void on_buttonUnderline_toggled(bool checked);
+   void on_buttonStrikeout_toggled(bool checked);
+   void on_positionCheckBox_toggled(bool);
+   void on_actionAddText_triggered();
+
+   void on_tabWidget_currentChanged(int index);
+
+   void on_buttonStartClip_clicked();
+
+   void on_buttonEndClip_clicked();
+
+   void on_actionOutputFile_triggered();
+
+   void on_playPauseButton_clicked();
+
 private:
-   inline void enableSubtitleWidgets(bool);
+   inline void showSubtitleWidgets(bool);
+   inline void setEditingItemsEnabled(bool);
 
    Ui::MainWindow *ui;
    QMainWindow *m;
@@ -69,7 +98,6 @@ private:
    QColor *m_Color;
    QTime *m_ShowTime;
    QTime *m_HideTime;
-   QTime *m_DurationTime;
 
    QWidget *newWidget;
    Subtitle *m_Subtitle;
@@ -81,13 +109,17 @@ private:
    QFile m_SubtitleFile;
    QFile m_OutputFile;
    QDir *m_Dir;
-   MplayerControl *m_MplayerControl;
+   mplayerWidget *m_mplayerWidget;
+   MencoderControl *m_MencoderControl;
 
    QFileDialog *m_OpenVideoFileDialog;
    QFile m_VideoFile;
-   QTime *m_VideoPosition;
+   QTime m_VideoPosition;
+   QTime m_VideoLength;
    int m_VideoWidth;
    int m_VideoHeight;
+
+   QFileDialog *m_SaveOutputFileDialog;
 
    bool m_MplayerExists;
    bool m_IsPlaying;

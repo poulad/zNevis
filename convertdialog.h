@@ -18,7 +18,7 @@ class ConvertDialog : public QDialog
    Q_OBJECT
 
 public:
-   explicit ConvertDialog(const QStringList &filesList, const double length, QWidget *parent);
+   explicit ConvertDialog(MencoderControl* mencoderControl, const double length, QWidget *parent);
    ~ConvertDialog();
 
 protected:

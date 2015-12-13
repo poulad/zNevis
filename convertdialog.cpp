@@ -1,7 +1,7 @@
 #include "convertdialog.h"
 #include "ui_convertdialog.h"
 
-ConvertDialog::ConvertDialog(const QStringList &filesList, const double length, QWidget *parent) :
+ConvertDialog::ConvertDialog(MencoderControl *mencoderControl, const double length, QWidget *parent) :
    QDialog(parent),
    ui(new Ui::ConvertDialog)
 {
@@ -10,14 +10,13 @@ ConvertDialog::ConvertDialog(const QStringList &filesList, const double length, 
    connect(ui->detailsButton, SIGNAL(toggled(bool)), this, SLOT(toggleDetails(bool)));
    this->adjustSize();
 
+   m_MencoderControl = mencoderControl;
    m_Length = length;
    m_ConversionFinished = false;
 
-   m_MencoderControl = new MencoderControl(parent);
    connect(m_MencoderControl, SIGNAL(positionChanged(int)), this, SLOT(setProgressBarValue(int)));
    connect(m_MencoderControl, SIGNAL(logRead(QString)), this, SLOT(appendLog(QString)));
    connect(m_MencoderControl, SIGNAL(finished(int)), this, SLOT(conversionFinished(int)));
-   m_MencoderControl->setFiles(filesList);
    m_MencoderControl->startConversion();
 }
 

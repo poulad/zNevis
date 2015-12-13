@@ -4,44 +4,62 @@ Subtitle::Subtitle(const QString &fileName, QTextCodec *codec)
 {
    qerr = new QTextStream(stderr);
    qout = new QTextStream(stdout);
-   m_DefaultFont.setPointSize(16);
-   m_DefaultColor.setNamedColor("red");
+   m_DefaultFont.setPointSize(20);
+   m_DefaultColor.setNamedColor("white");
    m_CurrentLine = 1;
    m_LineRegex.setCaseSensitivity(Qt::CaseInsensitive);
-   m_File = new QFile;
+
+   m_OriginalFile = 0;
+   m_AssFile = 0;
 
    *qerr << "Subtitle::Subtitle: " << endl;
    if(fileName == 0)
    {
       int n = 0;
-      QString tempFileName = QDir::tempPath() + "/" + "subtitle%1.srt";
+      QString fileName = QDir::tempPath() + "/subtitle%1.ass";
       QFile file;
-      file.setFileName( tempFileName.arg(n) );
-      while( file.exists() )
+      do
       {
-         file.setFileName( tempFileName.arg(++n) );
-      }
-      m_File->setFileName( file.fileName() );
+         file.setFileName(fileName.arg(++n));
+      } while(file.exists());
+
+      m_AssFile = new QFile();
+      m_AssFile->setFileName(file.fileName());
 
       //creating first line:
+      m_AssStyles =
+            "[V4+ Styles]\r\n"
+            "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, "
+            "StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\r\n"
+            "Style: Default," + m_DefaultFont.family() + ",10,0,0,&H0,&H0,0,0,0,0,100,100,0,0,1,1,0,2,10,10,10,0\r\n\r\n";
+
+      m_AssEvents =
+            "[Events]\r\n"
+            "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\r\n";
+
       m_ShowTimeList.append(QTime(0, 0, 0, 0));
-      m_HideTimeList.append(QTime(0, 0, 5, 0));
-      m_DurationTimeList.append(QTime(0, 0, 5, 0));
+      m_HideTimeList.append(QTime(0, 1, 5, 0));
       m_FontList.append(m_DefaultFont);
       m_ColorList.append(m_DefaultColor);
+      m_X1List.append(-1);
+      m_Y1List.append(-1);
       m_TextList.append("Text");
-      m_SrtLines.append(
-               m_ShowTimeList.first().toString("hh:mm:ss,zzz") + " --> " + m_HideTimeList.first().toString("hh:mm:ss,zzz") + "\n" +
-               "<font face=\"" + m_DefaultFont.family() + "\" size=" + QString::number(m_DefaultFont.pointSize()) + " color=\"" + m_DefaultColor.name(QColor::HexRgb) +
-               "\">Text</font>"
-               );
+      m_SrtLines.append( dialogueText(1) );
       m_LineCount = 1;
+
+      m_AssFile->open(QIODevice::WriteOnly | QIODevice::Truncate);
+      m_AssTextStream = new QTextStream(m_AssFile);
+      m_AssTextStream->setCodec( QTextCodec::codecForName("UTF-8") );
    }
    else
    {
-      m_File->setFileName(fileName);
+      m_OriginalFile = new QFile();
+      m_OriginalFile->setFileName(fileName);
    }
-   *qerr << "Subtitle::" << "Subtitle: " << "\"" << m_File->fileName() << "\"" << endl;
+   if (m_AssFile == 0)
+      *qerr << "Subtitle::" << "Subtitle: " << "\"" << m_OriginalFile->fileName() << "\"" << endl;
+   else if(m_OriginalFile == 0)
+      *qerr << "Subtitle::" << "Subtitle: " << "\"" << m_AssFile->fileName() << "\"" << endl;
 
    if(m_SrtLines.isEmpty())
       load(codec);
@@ -67,7 +85,10 @@ Subtitle::~Subtitle()
 
 QString Subtitle::fileName()
 {
-   return m_File->fileName();
+   if(m_AssFile != 0)
+      return m_AssFile->fileName();
+   else if(m_OriginalFile != 0)
+      return m_OriginalFile->fileName();
 }
 
 
@@ -112,12 +133,6 @@ QTime &Subtitle::hideTime()
 }
 
 
-QTime &Subtitle::durationTime()
-{
-   return m_DurationTimeList[m_CurrentLine-1];
-}
-
-
 quint64 Subtitle::lineCount() const
 {
    return m_LineCount;
@@ -140,11 +155,11 @@ quint64 Subtitle::getCurrentLine() const
 
 void Subtitle::setFileAddress(const QString &address)
 {
-   if(address == m_File->fileName())
+   if(address == m_OriginalFile->fileName())
       return;
 
    removeAll();
-   m_File->setFileName(address);
+   m_OriginalFile->setFileName(address);
    load();
 }
 
@@ -179,9 +194,14 @@ void Subtitle::setHideTime(const QTime &hideTime)
 }
 
 
-void Subtitle::setDurationTime(const QTime &durationTime)
+void Subtitle::setPosition(int x1, int y1)
 {
-   m_DurationTimeList[m_CurrentLine-1] = durationTime;
+   if(x1 < -1)
+      x1 = -1;
+   if(y1 < -1)
+      y1 = -1;
+   m_X1List[m_CurrentLine-1] = x1;
+   m_Y1List[m_CurrentLine-1] = y1;
 }
 
 
@@ -208,12 +228,26 @@ void Subtitle::setDefaultColor(const QColor& color)
 }
 
 
+void Subtitle::appendLine()
+{
+   QTime showTime = m_HideTimeList.last().addSecs(1);
+   m_ShowTimeList.append(showTime);
+   m_HideTimeList.append(showTime.addSecs(2));
+
+   m_FontList.append( m_FontList.last() );
+   m_ColorList.append( m_ColorList.last() );
+   m_X1List.append( m_X1List.last() );
+   m_Y1List.append( m_Y1List.last() );
+   m_TextList.append("text");
+   m_SrtLines.append( dialogueText( ++m_LineCount ) );
+}
+
+
 void Subtitle::removeLine(quint64 lineNumber)
 {
    lineNumber--;
    m_ShowTimeList.removeAt(lineNumber);
    m_HideTimeList.removeAt(lineNumber);
-   m_DurationTimeList.removeAt(lineNumber);
    m_FontList.removeAt(lineNumber);
    m_ColorList.removeAt(lineNumber);
    m_TextList.removeAt(lineNumber);
@@ -225,16 +259,15 @@ void Subtitle::removeLine(quint64 lineNumber)
 
 void Subtitle::removeAll()
 {
-   QTime showTime, hideDurationTime;
+   QTime showTime, hideTime;
    showTime.setHMS(0, 0, 0, 0);
-   hideDurationTime.setHMS(0, 0, 1, 0);
+   hideTime.setHMS(0, 0, 1, 0);
    QFont font(m_FontList.at(m_CurrentLine - 1));
    QColor color(m_ColorList.at(m_CurrentLine - 1));
    QString text = "text";
 
    m_ShowTimeList.clear();
    m_HideTimeList.clear();
-   m_DurationTimeList.clear();
    m_FontList.clear();
    m_ColorList.clear();
    m_TextList.clear();
@@ -242,13 +275,12 @@ void Subtitle::removeAll()
 
    m_LineCount = 1;
    m_ShowTimeList.append(showTime);
-   m_HideTimeList.append(hideDurationTime);
-   m_DurationTimeList.append(hideDurationTime);
+   m_HideTimeList.append(hideTime);
    m_FontList.append(font);
    m_ColorList.append(color);
    m_TextList.append(text);
    m_SrtLines.append(
-            showTime.toString("hh:mm:ss,zzz") + " --> " + hideDurationTime.toString("hh:mm:ss,zzz") + "\n" +
+            showTime.toString("h:mm:ss,zz") + " --> " + hideTime.toString("h:mm:ss,zz") + "\n" +
             "<font face=\"" + font.family() + "\" size=" + QString::number(font.pointSize()) + " color=\"" + color.name(QColor::HexRgb) +
             "\">" + text + "</font>"
             );
@@ -265,9 +297,9 @@ void Subtitle::removeAll()
 
 bool Subtitle::load(QTextCodec *textCodec)
 {
-   if(m_File->isOpen() == false)
-      m_File->open(QIODevice::ReadOnly);
-   QTextStream input(m_File);
+   if(m_OriginalFile->isOpen() == false)
+      m_OriginalFile->open(QIODevice::ReadOnly);
+   QTextStream input(m_OriginalFile);
    if(textCodec != 0)
    {
       input.setCodec(textCodec);
@@ -307,7 +339,7 @@ bool Subtitle::load(QTextCodec *textCodec)
    for(int i = 0; i < m_LineCount; ++i)
    {
       line =
-            m_ShowTimeList[i].toString("hh:mm:ss,zzz") + " --> " + m_HideTimeList[i].toString("hh:mm:ss,zzz") + "\n" +
+            m_ShowTimeList[i].toString("h:mm:ss,zz") + " --> " + m_HideTimeList[i].toString("h:mm:ss,zz") + "\n" +
             "<font face=\"" + m_FontList[i].family() + "\" size=" + QString::number( m_FontList[i].pointSize() ) + " color=" +
             m_ColorList[i].name(QColor::HexRgb) + ">" +(m_FontList[i].bold() ? "<b>" : "") + (m_FontList[i].italic() ? "<i>" : "")+
             (m_FontList[i].strikeOut() ? "<s>" : "") + (m_FontList[i].underline() ? "<u>" : "") + m_TextList[i] +
@@ -322,17 +354,26 @@ bool Subtitle::load(QTextCodec *textCodec)
 
 bool Subtitle::save()
 {
-   *qerr << "Subtitle::" << "save: " << m_File->fileName() << endl;
-   m_File->open(QIODevice::WriteOnly | QIODevice::Truncate);
-   m_File->resize(0);
-   QTextStream output(m_File);
+   *qerr << "Subtitle::" << "saveAsASS: " << m_AssFile->fileName() << endl;
+   m_AssFile->resize(0);
+   *m_AssTextStream << m_AssStyles << m_AssEvents << m_SrtLines.join('\r\n') << flush;
+   return true;
+}
+
+
+bool Subtitle::saveAsSrt()
+{
+   *qerr << "Subtitle::" << "saveAsSrt: " << m_OriginalFile->fileName() << endl;
+   m_OriginalFile->open(QIODevice::WriteOnly | QIODevice::Truncate);
+   m_OriginalFile->resize(0);
+   QTextStream output(m_OriginalFile);
    output.setCodec( QTextCodec::codecForName("UTF-8") );
    QString srtText;
    for(int i = 0; i < m_LineCount; ++i)
       srtText += QString::number(i+1) + "\n" + m_SrtLines[i] + "\n\n";
    srtText.chop(2);
    output << srtText;
-   *qerr << "Subtitle::" << "save: " << "file saved" << endl;
+   *qerr << "Subtitle::" << "saveAsSrt: " << "file saved" << endl;
    return true;
 }
 
@@ -345,22 +386,16 @@ void Subtitle::loadTime(const QStringList &timeList)
 {
    QTime showTime( timeList.at(1).toInt(), timeList.at(2).toInt(), timeList.at(3).toInt(),timeList.at(4).toInt());
    QTime hideTime( timeList.at(5).toInt(), timeList.at(6).toInt(), timeList.at(7).toInt(),timeList.at(8).toInt());
-   QTime durationTime;
    if(showTime > hideTime)
    {
       showTime = hideTime;
-      durationTime.setHMS(0,0,0,0);
    }
-   else
-      durationTime = QTime::fromMSecsSinceStartOfDay( hideTime.msecsSinceStartOfDay() - showTime.msecsSinceStartOfDay() );
 
    m_ShowTimeList.append(showTime);
    m_HideTimeList.append(hideTime);
-   m_DurationTimeList.append(durationTime);
 
-   *qerr << "Subtitle::" << "loadTime# " << "show_time=" << showTime.toString("hh:mm:ss,zzz") << endl;
-   *qerr << "Subtitle::" << "loadTime# " << "hide_time=" << hideTime.toString("hh:mm:ss,zzz") << endl;
-   *qerr << "Subtitle::" << "loadTime# " << "duration_time=" << durationTime.toString("hh:mm:ss,zzz") << endl;
+   *qerr << "Subtitle::" << "loadTime# " << "show_time=" << showTime.toString("h:mm:ss,zz") << endl;
+   *qerr << "Subtitle::" << "loadTime# " << "hide_time=" << hideTime.toString("h:mm:ss,zz") << endl;
 
 }
 
@@ -412,17 +447,46 @@ void Subtitle::loadTextFormat(QString &lineText)
 }
 
 
+QString Subtitle::dialogueText(quint64 lineNumber)
+{
+   QFont font = m_FontList.at(lineNumber-1);
+
+   QString BBGGRR = m_ColorList[lineNumber-1].name(QColor::HexRgb);
+   BBGGRR.remove('#');
+   QRegExp rgbRegex("([a-f0-9]{2})([a-f0-9]{2})([a-f0-9]{2})", Qt::CaseInsensitive);
+   if(BBGGRR.contains(rgbRegex))
+      BBGGRR = rgbRegex.cap(3) + rgbRegex.cap(2) + rgbRegex.cap(1);
+
+   QString position;
+   int x1 =  m_X1List[lineNumber-1];
+   int y1 = m_Y1List[lineNumber-1] ;
+   if( x1 == -1 && y1==-1 )
+      position = "";
+   else if( 0 <= x1 && 0 <= y1 )
+      position = "{\\pos(" + QString::number(x1) + "," + QString::number(y1) + ")}";
+
+   QString dialogueString =
+         "Dialogue: 0," + m_ShowTimeList[lineNumber-1].toString("h:mm:ss.zz") + "," + m_HideTimeList[lineNumber-1].toString("h:mm:ss.zz") + ",Default,,0,0,0,," +
+         position +
+         "{\\fn" + font.family() + "}" +
+         "{\\fs" + QString::number(font.pointSize()) + "}" +
+         ( font.bold() ? "{\\b1}" : "" ) +
+         ( font.italic() ? "{\\i1}" : "") +
+         ( font.underline() ? "{\\u1}" : "" ) +
+         ( font.strikeOut() ? "{\\s1}" : "") +
+         "{\\c&H" + BBGGRR + "&}" +
+         m_TextList.at(lineNumber-1)
+         ;
+   return dialogueString;
+}
+
+
 void Subtitle::updateLine(quint64 lineNumber)
 {
    *qerr << "Subtitle::" << "replaceLine: " << endl;
-   if(lineNumber == 0)  lineNumber = m_CurrentLine;
-   QString newLine =
-         m_ShowTimeList[lineNumber-1].toString("hh:mm:ss,zzz") + " --> " + m_HideTimeList[lineNumber-1].toString("hh:mm:ss,zzz") + "\n" +
-         "<font face=\"" + m_FontList[lineNumber-1].family() + "\" size=" + QString::number( m_FontList[lineNumber-1].pointSize() ) + " color=" +
-         m_ColorList[lineNumber-1].name(QColor::HexRgb) + ">" +(m_FontList[lineNumber-1].bold() ? "<b>" : "") + (m_FontList[lineNumber-1].italic() ? "<i>" : "") +
-         (m_FontList[lineNumber-1].strikeOut() ? "<s>" : "") + (m_FontList[lineNumber-1].underline() ? "<u>" : "") + m_TextList[lineNumber-1] +
-         ( m_FontList[lineNumber-1].underline() ? "</u>" : "") + ( m_FontList[lineNumber-1].strikeOut() ? "</s>" : "") + (m_FontList[lineNumber-1].italic() ? "</i>" : "") +
-         (m_FontList[lineNumber-1].bold() ? "</b>" : "") + "</font>\n";
+   if(lineNumber == 0)
+      lineNumber = m_CurrentLine;
+   QString newLine = dialogueText(lineNumber);
    m_SrtLines.replace(lineNumber-1, newLine);
    save();
 }

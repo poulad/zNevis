@@ -11,10 +11,10 @@ INCLUDEPATH += .
 HEADERS += \
            mainwindow.h \
            subtitle.h \
-    mplayercontrol.h \
     convertdialog.h \
     mencodercontrol.h \
-    mediaidentifier.h
+    mediaid.h \
+    mplayerwidget.h
 
 FORMS += mainwindow.ui \
     convertdialog.ui \
@@ -23,10 +23,10 @@ SOURCES += \
            main.cpp \
            mainwindow.cpp \
            subtitle.cpp \
-    mplayercontrol.cpp \
     convertdialog.cpp \
     mencodercontrol.cpp \
-    mediaidentifier.cpp
+    mediaid.cpp \
+    mplayerwidget.cpp
 
 RESOURCES += \
     zNevis.qrc

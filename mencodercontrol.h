@@ -7,15 +7,22 @@
 #include <QStringList>
 #include <QRegExp>
 #include <QDebug>
+#include <QTime>
 
 class MencoderControl : public QObject
 {
    Q_OBJECT
 public:
    explicit MencoderControl(QObject *parent = 0);
+   ~MencoderControl();
 
    // Set Functions
-   void setFiles(const QStringList& files);
+   void setMencoderAddress(const QString &address);
+   void setInputMedia(const QString &input);
+   void setSubtitle(const QString &address);
+   void setOutput(const QString& output);
+   void setClipTime(const QTime &startTime, const QTime &endTime);
+
 
    // Other
    void startConversion();
@@ -30,8 +37,18 @@ private slots:
    void processFinished(int);
 
 private:
+   void inline updateArgs();
+
    QProcess *m_Process;
-   QStringList m_FilesList;
+
+   QString m_MencoderAddress;
+   QString m_Input;
+   QString m_Subtitle;
+   QString m_Output;
+   QTime *m_StartTime;
+   QTime *m_EndTime;
+
+   QStringList m_Args;
    QString m_Log;
    QRegExp m_RegexPosition;
 };

@@ -1,5 +1,7 @@
-#ifndef MPLAYERCONTROL_H
-#define MPLAYERCONTROL_H
+#ifndef MPLAYERWIDGET_H
+#define MPLAYERWIDGET_H
+
+#include <QWidget>
 #include <QProcess>
 #include <QStringList>
 #include <QString>
@@ -7,38 +9,39 @@
 #include <QRegExp>
 #include <QStandardPaths>
 
+#include "mediaid.h"
 
-class MplayerControl : public QObject
+
+class mplayerWidget : public QWidget
 {
    Q_OBJECT
 public:
-   explicit MplayerControl(const QString &mplayerAddress, const QString &videoAddress, QObject *parent);
-   ~MplayerControl();
+   explicit mplayerWidget(const QString& mplayer, QWidget *parent);
+   ~mplayerWidget();
 
    // Get functions:
-   QStringList &videoIdList();
+   const MediaID *mediaID();
    const QString &mplayerAddress();
+   bool isPlaying() const { return m_IsPlaying; }
 
    //Set functions:
    void setMplayerAddress(const QString& address);
-   void setWinId(const QString& winId);
    void setVideoFile(const QString& address);
    void setSubtitleFile(const QString& address);
 
-   //Other
+   //Other:
    void identifyVideo();
 
 signals:
    void mplayerExists();
    void mplayerStdOutErr(const QString&);
    void mplayerCrashed(QString*);
-   void positionChanged(quint64 second, quint64 msec);
-   void videoIdChanged(QStringList &videoIdList);
+   void positionChanged(int deciSec);
+   void videoIdChanged(const MediaID*);
 
 public slots:
    void playPause();
    void pause();
-   void quit();
    void seekTo(quint64 msec);
    void updateSubtitle();
    void volume(int);
@@ -46,19 +49,16 @@ public slots:
 
 private slots:
    void readVideoId();
-   void readStdOutErr();
+   void readStdOut();
    void readStderr();
 
 private:
+   void quit();
    inline void sendCommand();
-   inline void updateArgsList();
 
+   // Private Members
    bool m_IsPlaying;
 
-   QStringList m_ArgsList;
-   QStringList m_VideoIdList;
-
-   QString m_WinId;
    QString *m_VideoIdString;
 
    QProcess *m_Process;
@@ -69,10 +69,14 @@ private:
    QString m_SubtitleAddress;
 
    QString m_ErrorLog;
-   QString m_MplayerAddress;
+   QString m_mplayerAddress;
+
+   int m_PositionDeciSec;
 
    QRegExp *m_RegexLength;
    QRegExp m_RegexPosition;
+
+   MediaID *m_MediaID;
 };
 
-#endif // MPLAYERCONTROL_H
+#endif // MPLAYERWIDGET_H

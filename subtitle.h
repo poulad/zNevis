@@ -29,48 +29,60 @@ public:
    QColor &color();
    QTime &showTime();
    QTime &hideTime();
-   QTime &durationTime();
    quint64 lineCount() const;
    quint64 getCurrentLine() const;
 
 
    /// Set Functions:
    void setFileAddress(const QString &address);
-   void setText(const QString &text);
-   void setFont(const QFont &font);
-   void setColor(const QColor &color);
+
    void setShowTime(const QTime &showTime);
    void setHideTime(const QTime &hideTime);
-   void setDurationTime(const QTime &durationTime);
+   void setFont(const QFont &font);
+   void setColor(const QColor &color);
+   void setText(const QString &text);
+   void setPosition(int x1, int y1);
 
    void setCurrentLine(quint64 lineNumber);
    void setDefaultFont(const QFont& font);
    void setDefaultColor(const QColor& color);
-   void insertLine(quint64 afterNumber, QString text = 0); // argument of value 0, means append
+   void appendLine();
    void removeLine(quint64 lineNumber);
    void removeAll();
 
    /// Manipulate Functions:
    bool load(QTextCodec *textCodec = 0);
    bool save();
+   bool saveAsSrt();
    void updateLine(quint64 lineNumber = 0);
+
+public slots:
+
 
 private:
    inline void loadTime(const QStringList &);
    inline void loadTextFormat(QString &);
+   inline QString dialogueText(quint64 lineNumber);
 
    // Private members:
    QStringList m_SrtLines;
    QStringList m_TextList;
    QList<QTime> m_ShowTimeList;
    QList<QTime> m_HideTimeList;
-   QList<QTime> m_DurationTimeList;
    QList<QFont> m_FontList;
    QList<QColor> m_ColorList;
+   QList<int> m_X1List;
+   QList<int> m_Y1List;
+
+   QString m_AssStyles;
+   QString m_AssEvents;
 
    QFont m_DefaultFont;
    QColor m_DefaultColor;
-   QFile *m_File;
+
+   QFile *m_OriginalFile;
+   QFile *m_AssFile;
+
    quint64 m_LineCount;
 
    quint64 m_CurrentLine;
@@ -79,6 +91,7 @@ private:
 
    QTextStream *qerr;
    QTextStream *qout;
+   QTextStream *m_AssTextStream;
 };
 
 #endif // SUBTITLE_H
