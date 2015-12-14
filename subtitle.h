@@ -83,7 +83,7 @@ private:
    QFile *m_OriginalFile;
    QFile *m_AssFile;
 
-   quint64 m_LineCount;
+   int m_LineCount;
 
    quint64 m_CurrentLine;
 

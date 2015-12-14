@@ -3,7 +3,8 @@
 MencoderControl::MencoderControl(QObject *parent)
    :  QObject(parent)
 {
-   m_RegexPosition.setPattern("Pos:\\s+(\\d+).(\\d+)s\\s+");
+   m_RegexPosition.setPattern("Pos:\\s*(\\d+).(\\d+)s\\s*");
+   m_RegexPosition.setCaseSensitivity(Qt::CaseInsensitive);
    m_StartTime = 0;
    m_EndTime = 0;
 
@@ -74,7 +75,7 @@ void MencoderControl::setClipTime(const QTime &startTime, const QTime &endTime)
 void MencoderControl::startConversion()
 {
    qDebug() << "MencoderControl::startConversion: ";
-   if(m_Input.isEmpty() || m_Output.isEmpty())
+   if(m_Input.isEmpty() || m_Output.isEmpty() || m_Subtitle.isEmpty() || m_EndTime->msecsSinceStartOfDay() == 0)
       return;
 
    updateArgs();

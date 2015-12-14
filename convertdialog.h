@@ -35,6 +35,8 @@ private:
    MencoderControl *m_MencoderControl;
    double m_Length;
    bool m_ConversionFinished;
+
+   QProcess *m_Process;
 };
 
 #endif // CONVERTDIALOG_H

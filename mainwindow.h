@@ -40,7 +40,7 @@ private slots:
    void playPreviousLine();
    void playNextLine();
 
-   void setVideoPosition(int);
+   void setVideoPosition(int mSec);
    void seekSlider(int);
 
    // Controlling mplayer:
@@ -52,8 +52,6 @@ private slots:
 
    void on_colorButton_clicked();
 
-   void readLog(QString);
-
    // mplayer
    void importVideoId(const MediaID* mediaID);
 
@@ -61,8 +59,6 @@ private slots:
    void importSubtitle();
    void on_actionNewSubtitle_triggered();
    void on_actionOpenSubtitle_triggered();
-   void on_showTimeEdit_timeChanged(const QTime &time);
-   void on_hideTimeEdit_timeChanged(const QTime &time);
    void on_actionSetLineShow_triggered();
    void on_actionSetLineHide_triggered();
    void on_fontComboBox_currentFontChanged(const QFont &f);
@@ -73,6 +69,8 @@ private slots:
    void on_buttonStrikeout_toggled(bool checked);
    void on_positionCheckBox_toggled(bool);
    void on_actionAddText_triggered();
+   void updateShowTime(QTime showTime);
+   void updateHideTime(QTime hideTime);
 
    void on_tabWidget_currentChanged(int index);
 
@@ -83,6 +81,10 @@ private slots:
    void on_actionOutputFile_triggered();
 
    void on_playPauseButton_clicked();
+
+   void on_updateCheckBox_toggled(bool checked);
+
+
 
 private:
    inline void showSubtitleWidgets(bool);
@@ -121,7 +123,6 @@ private:
 
    QFileDialog *m_SaveOutputFileDialog;
 
-   bool m_MplayerExists;
    bool m_IsPlaying;
 };
 

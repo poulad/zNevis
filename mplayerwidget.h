@@ -36,7 +36,7 @@ signals:
    void mplayerExists();
    void mplayerStdOutErr(const QString&);
    void mplayerCrashed(QString*);
-   void positionChanged(int deciSec);
+   void positionChanged(int mSec);
    void videoIdChanged(const MediaID*);
 
 public slots:
@@ -71,7 +71,7 @@ private:
    QString m_ErrorLog;
    QString m_mplayerAddress;
 
-   int m_PositionDeciSec;
+   int m_Position;
 
    QRegExp *m_RegexLength;
    QRegExp m_RegexPosition;

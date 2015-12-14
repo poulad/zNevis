@@ -5,7 +5,7 @@ Subtitle::Subtitle(const QString &fileName, QTextCodec *codec)
    qerr = new QTextStream(stderr);
    qout = new QTextStream(stdout);
    m_DefaultFont.setPointSize(20);
-   m_DefaultColor.setNamedColor("white");
+   m_DefaultColor.setNamedColor("red");
    m_CurrentLine = 1;
    m_LineRegex.setCaseSensitivity(Qt::CaseInsensitive);
 
@@ -38,7 +38,7 @@ Subtitle::Subtitle(const QString &fileName, QTextCodec *codec)
             "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\r\n";
 
       m_ShowTimeList.append(QTime(0, 0, 0, 0));
-      m_HideTimeList.append(QTime(0, 1, 5, 0));
+      m_HideTimeList.append(QTime(0, 0, 5, 0));
       m_FontList.append(m_DefaultFont);
       m_ColorList.append(m_DefaultColor);
       m_X1List.append(-1);
@@ -89,6 +89,8 @@ QString Subtitle::fileName()
       return m_AssFile->fileName();
    else if(m_OriginalFile != 0)
       return m_OriginalFile->fileName();
+   else
+      return "";
 }
 
 

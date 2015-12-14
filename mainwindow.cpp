@@ -71,6 +71,7 @@ void MainWindow::on_actionNewSubtitle_triggered()
    {
       m_Subtitle = new Subtitle();
       m_SubtitleFile.setFileName(m_Subtitle->fileName());
+      m_mplayerWidget->setSubtitleFile(m_SubtitleFile.fileName());
    }
    else
    {
@@ -91,10 +92,7 @@ void MainWindow::on_actionNewSubtitle_triggered()
       ui->tableWidget->clear();
       m_Subtitle->removeAll();
    }
-   //if(m_MplayerControl != 0)
-   //m_MplayerControl->setSubtitleFile(m_Subtitle->fileName());
    importSubtitle();
-   //showSubtitleWidgets(true);
 }
 
 
@@ -135,8 +133,8 @@ void MainWindow::importVideoId(const MediaID *mediaID)
 {
    qDebug() << "MainWindow::importVideoId ";
 
-   ui->positionSlider->setMaximum(mediaID->length());
    m_VideoLength = QTime::fromMSecsSinceStartOfDay( mediaID->length() * 10);
+   ui->positionSlider->setMaximum(m_VideoLength.msecsSinceStartOfDay());
    m_VideoWidth = mediaID->width();
    m_VideoHeight = mediaID->height();
    ui->lengthLabel->setText(m_VideoLength.toString("h:mm:ss,zzz"));
@@ -155,6 +153,12 @@ void MainWindow::importVideoId(const MediaID *mediaID)
    ui->videoFpsLabel->setText( QString::number( mediaID->fps() ) );
    ui->videoLengthLabel->setText( ui->lengthLabel->text() );
    ui->videoSizeLabel->setText( QString::number(m_VideoWidth) + " x " + QString::number(m_VideoHeight) );
+
+   on_actionNewSubtitle_triggered();
+
+   QFileInfo fileInfo(m_VideoFile);
+   m_OutputFile.setFileName(fileInfo.absolutePath() + "/" + fileInfo.baseName() + "-zNevis.mp4");
+   ui->lineEditOutput->setText(m_OutputFile.fileName());
 }
 
 
@@ -170,7 +174,6 @@ void MainWindow::importSubtitle()
       ui->tableWidget->setItem(i, 0, new QTableWidgetItem(m_Subtitle->showTime().toString("h:mm:ss,zz")) );
       ui->tableWidget->setItem(i, 1, new QTableWidgetItem(m_Subtitle->hideTime().toString("h:mm:ss,zz")) );
       QTableWidgetItem *lineTextItem = new QTableWidgetItem(m_Subtitle->text());
-      lineTextItem->setTextColor( m_Subtitle->color() );
       lineTextItem->setFont( m_Subtitle->font() );
       ui->tableWidget->setItem(i, 2, lineTextItem );
    }
@@ -199,9 +202,10 @@ void MainWindow::importSubtitle()
 
    connect(ui->tableWidget, SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(changeLineProperties(int,int,int,int)));
    connect(ui->textEdit, SIGNAL(textChanged()), this, SLOT(updateText()));
+   connect(ui->showTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateShowTime(QTime)));
+   connect(ui->hideTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateHideTime(QTime)));
    connect(ui->x1SpinBox, SIGNAL(valueChanged(int)), this, SLOT(updatePosition()));
    connect(ui->y1SpinBox, SIGNAL(valueChanged(int)), this, SLOT(updatePosition()));
-
 }
 
 
@@ -252,13 +256,14 @@ void MainWindow::changeLineProperties(int currentRow, int currentColumn, int pre
 
 void MainWindow::updateText()
 {
-   const QString &newText = ui->textEdit->toPlainText();
-   if( newText == *m_Text )
-      return;
    qDebug() << "MainWindow::updateText: ";
-   //m_MplayerControl->pause();
    *m_Text = ui->textEdit->toPlainText();
    ui->tableWidget->item(ui->tableWidget->currentRow(), 2)->setText( *m_Text );
+   if(ui->updateCheckBox->isChecked())
+   {
+      m_Subtitle->updateLine();
+      m_mplayerWidget->updateSubtitle();
+   }
 }
 
 
@@ -308,6 +313,44 @@ void MainWindow::on_actionAddText_triggered()
 }
 
 
+void MainWindow::updateShowTime(QTime showTime)
+{
+   if(*m_HideTime < showTime)
+   {
+      ui->showTimeEdit->setTime(*m_ShowTime);
+   }
+   else
+   {
+      *m_ShowTime = showTime;
+   }
+   ui->tableWidget->item(ui->tableWidget->currentRow(), 0)->setText(m_ShowTime->toString("h:mm:ss,zzz"));
+   if(ui->updateCheckBox->isChecked())
+   {
+      m_Subtitle->updateLine();
+      m_mplayerWidget->updateSubtitle();
+   }
+}
+
+
+void MainWindow::updateHideTime(QTime hideTime)
+{
+   if(hideTime < *m_ShowTime)
+   {
+      ui->hideTimeEdit->setTime(*m_HideTime);
+   }
+   else
+   {
+      *m_HideTime = hideTime;
+   }
+   ui->tableWidget->item(ui->tableWidget->currentRow(), 1)->setText(m_HideTime->toString("h:mm:ss,zzz"));
+   if(ui->updateCheckBox->isChecked())
+   {
+      m_Subtitle->updateLine();
+      m_mplayerWidget->updateSubtitle();
+   }
+}
+
+
 void MainWindow::playPreviousLine()
 {
    ui->tableWidget->setCurrentCell(ui->tableWidget->currentRow()-1, 2);
@@ -322,11 +365,11 @@ void MainWindow::playNextLine()
 }
 
 
-void MainWindow::setVideoPosition(int deciSec)
+void MainWindow::setVideoPosition(int mSec)
 {
    //qDebug() << "MainWindow::setVideoPosition: ";
-   ui->positionSlider->setValue(deciSec);
-   m_VideoPosition = QTime::fromMSecsSinceStartOfDay(deciSec * 10);
+   ui->positionSlider->setValue(mSec);
+   m_VideoPosition = QTime::fromMSecsSinceStartOfDay(mSec);
    ui->positionLabel->setText( m_VideoPosition.toString("h:mm:ss,zzz") );
 }
 
@@ -354,9 +397,6 @@ void MainWindow::on_actionOpenVideo_triggered()
       setEditingItemsEnabled(false);
       m_VideoFile.setFileName( m_OpenVideoFileDialog->selectedFiles().first() );
       m_mplayerWidget->setVideoFile(m_VideoFile.fileName());
-
-      if(m_SubtitleFile.exists())
-         m_mplayerWidget->setSubtitleFile(m_Subtitle->fileName());
    }
    *m_Dir = m_OpenVideoFileDialog->directory();
 }
@@ -396,7 +436,11 @@ void MainWindow::on_colorButton_clicked()
       QString text = ui->textEdit->toPlainText();
       ui->textEdit->setPlainText("Plain Text");
       ui->textEdit->setPlainText(text);
-      ui->tableWidget->currentItem()->setTextColor(*m_Color);
+      if(ui->updateCheckBox->isChecked())
+      {
+         m_Subtitle->updateLine();
+         m_mplayerWidget->updateSubtitle();
+      }
    }
 }
 
@@ -413,12 +457,6 @@ void MainWindow::on_positionCheckBox_toggled(bool b)
    }
    m_Subtitle->updateLine();
    m_mplayerWidget->updateSubtitle();
-}
-
-
-void MainWindow::readLog(QString log)
-{
-   //m_LogDialog.append(log);
 }
 
 
@@ -456,18 +494,33 @@ void MainWindow::on_fontComboBox_currentFontChanged(const QFont &f)
 {
    m_Font->setFamily(f.family());
    ui->textEdit->setFont(*m_Font);
+   if(ui->updateCheckBox->isChecked())
+   {
+      m_Subtitle->updateLine();
+      m_mplayerWidget->updateSubtitle();
+   }
 }
 
 void MainWindow::on_sizeSpinBox_valueChanged(int arg1)
 {
    m_Font->setPointSize(arg1);
    ui->textEdit->setFontPointSize(arg1);
+   if(ui->updateCheckBox->isChecked())
+   {
+      m_Subtitle->updateLine();
+      m_mplayerWidget->updateSubtitle();
+   }
 }
 
 void MainWindow::on_buttonBold_toggled(bool checked)
 {
    m_Font->setBold(checked);
    ui->textEdit->setFont(*m_Font);
+   if(ui->updateCheckBox->isChecked())
+   {
+      m_Subtitle->updateLine();
+      m_mplayerWidget->updateSubtitle();
+   }
 }
 
 
@@ -475,6 +528,11 @@ void MainWindow::on_buttonItalic_toggled(bool checked)
 {
    m_Font->setItalic(checked);
    ui->textEdit->setFont(*m_Font);
+   if(ui->updateCheckBox->isChecked())
+   {
+      m_Subtitle->updateLine();
+      m_mplayerWidget->updateSubtitle();
+   }
 }
 
 
@@ -482,6 +540,11 @@ void MainWindow::on_buttonUnderline_toggled(bool checked)
 {
    m_Font->setUnderline(checked);
    ui->textEdit->setFont(*m_Font);
+   if(ui->updateCheckBox->isChecked())
+   {
+      m_Subtitle->updateLine();
+      m_mplayerWidget->updateSubtitle();
+   }
 }
 
 
@@ -489,22 +552,11 @@ void MainWindow::on_buttonStrikeout_toggled(bool checked)
 {
    m_Font->setStrikeOut(checked);
    ui->textEdit->setFont(*m_Font);
-}
-
-
-void MainWindow::on_showTimeEdit_timeChanged(const QTime &newShowTime)
-{
-   m_ShowTime->setHMS(newShowTime.hour(), newShowTime.minute(), newShowTime.second(), newShowTime.msec());
-   qDebug() << "MainWindow::on_showTimeEdit_timeChanged: " << m_ShowTime->toString("h:mm:ss,zz");
-   ui->tableWidget->item(ui->tableWidget->currentRow(), 0)->setText( m_ShowTime->toString("h:mm:ss,zz") );
-}
-
-
-void MainWindow::on_hideTimeEdit_timeChanged(const QTime &newHideTime)
-{
-   m_HideTime->setHMS(newHideTime.hour(), newHideTime.minute(), newHideTime.second(), newHideTime.msec());
-   qDebug() << "MainWindow::on_hideTimeEdit_timeChanged: " << m_HideTime->toString("h:mm:ss,zz");
-   ui->tableWidget->item(ui->tableWidget->currentRow(), 1)->setText( m_HideTime->toString("h:mm:ss,zz") );
+   if(ui->updateCheckBox->isChecked())
+   {
+      m_Subtitle->updateLine();
+      m_mplayerWidget->updateSubtitle();
+   }
 }
 
 
@@ -591,9 +643,33 @@ void MainWindow::on_actionOutputFile_triggered()
    *m_Dir = m_SaveOutputFileDialog->directory();
 }
 
+
 void MainWindow::on_playPauseButton_clicked()
 {
-   //m_Subtitle->updateLine();
-   //m_mplayerWidget->updateSubtitle();
+   if(ui->updateCheckBox->isChecked() == false)
+   {
+      m_Subtitle->updateLine();
+      m_mplayerWidget->updateSubtitle();
+   }
    m_mplayerWidget->playPause();
+}
+
+void MainWindow::on_updateCheckBox_toggled(bool checked)
+{
+   if(checked == true)
+   {
+      connect(ui->tableWidget, SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(changeLineProperties(int,int,int,int)));
+      connect(ui->textEdit, SIGNAL(textChanged()), this, SLOT(updateText()));
+      connect(ui->showTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateShowTime(QTime)));
+      connect(ui->hideTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateHideTime(QTime)));
+      m_Subtitle->updateLine();
+      m_mplayerWidget->updateSubtitle();
+   }
+   else
+   {
+      disconnect(ui->tableWidget, SIGNAL(currentCellChanged(int,int,int,int)), this, SLOT(changeLineProperties(int,int,int,int)));
+      disconnect(ui->textEdit, SIGNAL(textChanged()), this, SLOT(updateText()));
+      disconnect(ui->showTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateShowTime(QTime)));
+      disconnect(ui->hideTimeEdit, SIGNAL(timeChanged(QTime)), this, SLOT(updateHideTime(QTime)));
+   }
 }

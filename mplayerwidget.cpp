@@ -5,7 +5,7 @@ mplayerWidget::mplayerWidget(const QString& mplayer, QWidget *parent)
 {
    qDebug() << "mplayerWidget::mplayerWidget: ";
    m_mplayerAddress = mplayer;
-   m_RegexPosition.setPattern("^A:\\s*\\d+[.]?\\d*\\s+V:\\s*([\\d|.]+)\\s+");
+   m_RegexPosition.setPattern("^A:\\s*\\d+[.]?\\d*\\s+V:\\s*(\\d+).(\\d+)\\s+");
    m_RegexPosition.setCaseSensitivity(Qt::CaseInsensitive);
 
    m_MediaID = new MediaID(m_mplayerAddress, this);
@@ -127,6 +127,7 @@ void mplayerWidget::playPause()
 void mplayerWidget::pause()
 {
    m_Command = "set_property pause 1";
+   m_IsPlaying = false;
    sendCommand();
 }
 
@@ -159,9 +160,8 @@ void mplayerWidget::readStderr()
    //qDebug() << stderrString;
    if( stderrString.contains(m_RegexPosition) )
    {
-      //qDebug() << stderrString;
-      m_PositionDeciSec = m_RegexPosition.cap(1).remove(".").toInt();
-      emit positionChanged(m_PositionDeciSec);
+      m_Position = m_RegexPosition.cap(1).toInt() * 1000 + m_RegexPosition.cap(2).toInt() * 100;
+      emit positionChanged(m_Position);
    }
 
 }
@@ -180,21 +180,20 @@ void mplayerWidget::updateSubtitle()
 {
    qDebug() << "mplayerWidget::updateSubtitle: ";
 
-   m_Command = "sub_remove 0\n";
+   m_Command = "pausing_keep sub_remove 0";
    sendCommand();
-   m_Command = "sub_file -1\n";
+   m_Command = "pausing_keep sub_file -1";
    sendCommand();
-   m_Command = "sub_load " + m_SubtitleAddress + "\n";
+   m_Command = "pausing_keep sub_load \"" + m_SubtitleAddress + "\"";
    sendCommand();
-   m_Command = "sub_select 0\n";
+   m_Command = "pausing_keep sub_select 0";
    sendCommand();
 }
 
 
 void mplayerWidget::sendCommand()
 {
-
-   m_Command += "\r\n";
+   m_Command += "\n";
    m_Process->write(QByteArray(m_Command.toLatin1()));
 }
 
