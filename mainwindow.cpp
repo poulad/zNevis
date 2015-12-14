@@ -288,7 +288,7 @@ void MainWindow::on_actionConvert_triggered()
    if(m_SubtitleFile.exists())
       m_MencoderControl->setSubtitle(m_SubtitleFile.fileName());
    m_MencoderControl->setOutput(m_OutputFile.fileName());
-   m_ConvertDialog = new ConvertDialog( m_MencoderControl, ui->clipDurationTimeEdit->time().msecsSinceStartOfDay(), this);
+   m_ConvertDialog = new ConvertDialog( m_MencoderControl, ui->clipDurationTimeEdit->time().msecsSinceStartOfDay()/1000, this);
    m_ConvertDialog->exec();
 }
 

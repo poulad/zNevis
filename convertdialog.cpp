@@ -1,7 +1,7 @@
 #include "convertdialog.h"
 #include "ui_convertdialog.h"
 
-ConvertDialog::ConvertDialog(MencoderControl *mencoderControl, const double length, QWidget *parent) :
+ConvertDialog::ConvertDialog(MencoderControl *mencoderControl, const int length, QWidget *parent) :
    QDialog(parent),
    ui(new Ui::ConvertDialog)
 {
@@ -13,6 +13,7 @@ ConvertDialog::ConvertDialog(MencoderControl *mencoderControl, const double leng
    m_MencoderControl = mencoderControl;
    m_Length = length;
    m_ConversionFinished = false;
+   ui->progressBar->setMaximum(m_Length);
 
    connect(m_MencoderControl, SIGNAL(positionChanged(int)), this, SLOT(setProgressBarValue(int)));
    connect(m_MencoderControl, SIGNAL(logRead(QString)), this, SLOT(appendLog(QString)));
@@ -62,9 +63,8 @@ void ConvertDialog::toggleDetails(bool b)
 
 void ConvertDialog::setProgressBarValue(int second)
 {
-   qDebug() << "ConverDialog::setProgressBarValue: " << "second=" << QString::number(second);
-   int posPercentage = second*100/m_Length;
-   ui->progressBar->setValue(posPercentage);
+   //qDebug() << "ConverDialog::setProgressBarValue: " << "second=" << QString::number(second);
+   ui->progressBar->setValue(second);
 }
 
 

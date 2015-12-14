@@ -4,7 +4,6 @@
 #include "mencodercontrol.h"
 
 #include <QDialog>
-#include <QProcess>
 #include <QDebug>
 #include <QCloseEvent>
 #include <QMessageBox>
@@ -18,7 +17,7 @@ class ConvertDialog : public QDialog
    Q_OBJECT
 
 public:
-   explicit ConvertDialog(MencoderControl* mencoderControl, const double length, QWidget *parent);
+   explicit ConvertDialog(MencoderControl* mencoderControl, const int length, QWidget *parent);
    ~ConvertDialog();
 
 protected:
@@ -33,10 +32,9 @@ private slots:
 private:
    Ui::ConvertDialog *ui;
    MencoderControl *m_MencoderControl;
-   double m_Length;
+   int m_Length;
    bool m_ConversionFinished;
 
-   QProcess *m_Process;
 };
 
 #endif // CONVERTDIALOG_H
