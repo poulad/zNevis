@@ -40,8 +40,7 @@ private slots:
    void playPreviousLine();
    void playNextLine();
 
-   void setVideoPosition(int mSec);
-   void seekSlider(int);
+   void updateVideoPosition(int mSec);
 
    // Controlling mplayer:
    void on_actionOpenVideo_triggered();
@@ -106,13 +105,13 @@ private:
    QColorDialog *m_ColorDialog;
    QFontDialog *fontDialog;
    QFileDialog *m_OpenSubtitleFileDialog;
-   QFileDialog *m_MplayerFileDialog;
+   QFileDialog *m_MPlayerFileDialog;
 
    QFile m_SubtitleFile;
    QFile m_OutputFile;
    QDir *m_Dir;
-   mplayerWidget *m_mplayerWidget;
-   MencoderControl *m_MencoderControl;
+   MPlayerWidget *m_MPlayerWidget;
+   MEncoderControl *m_MEncoderControl;
 
    QFileDialog *m_OpenVideoFileDialog;
    QFile m_VideoFile;

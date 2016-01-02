@@ -17,7 +17,7 @@ class ConvertDialog : public QDialog
    Q_OBJECT
 
 public:
-   explicit ConvertDialog(MencoderControl* mencoderControl, const int length, QWidget *parent);
+   explicit ConvertDialog(MEncoderControl* mencoderControl, const int length, QWidget *parent);
    ~ConvertDialog();
 
 protected:
@@ -31,7 +31,7 @@ private slots:
 
 private:
    Ui::ConvertDialog *ui;
-   MencoderControl *m_MencoderControl;
+   MEncoderControl *m_MEncoderControl;
    int m_Length;
    bool m_ConversionFinished;
 

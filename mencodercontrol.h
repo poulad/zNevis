@@ -9,12 +9,12 @@
 #include <QDebug>
 #include <QTime>
 
-class MencoderControl : public QObject
+class MEncoderControl : public QObject
 {
    Q_OBJECT
 public:
-   explicit MencoderControl(QObject *parent = 0);
-   ~MencoderControl();
+   explicit MEncoderControl(QObject *parent = 0);
+   ~MEncoderControl();
 
    // Set Functions
    void setMencoderAddress(const QString &address);
@@ -22,7 +22,6 @@ public:
    void setSubtitle(const QString &address);
    void setOutput(const QString& output);
    void setClipTime(const QTime &startTime, const QTime &endTime);
-
 
    // Other
    void startConversion();
@@ -41,7 +40,7 @@ private:
 
    QProcess *m_Process;
 
-   QString m_MencoderAddress;
+   QString m_MEncoderAddress;
    QString m_Input;
    QString m_Subtitle;
    QString m_Output;

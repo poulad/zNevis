@@ -12,12 +12,12 @@
 #include "mediaid.h"
 
 
-class mplayerWidget : public QWidget
+class MPlayerWidget : public QWidget
 {
    Q_OBJECT
 public:
-   explicit mplayerWidget(const QString& mplayer, QWidget *parent);
-   ~mplayerWidget();
+   explicit MPlayerWidget(const QString& mplayer, QWidget *parent);
+   ~MPlayerWidget();
 
    // Get functions:
    const MediaID *mediaID();
@@ -42,15 +42,14 @@ signals:
 public slots:
    void playPause();
    void pause();
-   void seekTo(quint64 msec);
+   void seekTo(int msec);
    void updateSubtitle();
    void volume(int);
    void fullScreen();
 
 private slots:
    void readVideoId();
-   void readStdOut();
-   void readStderr();
+   void readOutput();
 
 private:
    void quit();
@@ -69,7 +68,7 @@ private:
    QString m_SubtitleAddress;
 
    QString m_ErrorLog;
-   QString m_mplayerAddress;
+   QString m_MPlayerAddress;
 
    int m_Position;
 

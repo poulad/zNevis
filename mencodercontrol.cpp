@@ -1,6 +1,6 @@
 #include "mencodercontrol.h"
 
-MencoderControl::MencoderControl(QObject *parent)
+MEncoderControl::MEncoderControl(QObject *parent)
    :  QObject(parent)
 {
    m_RegexPosition.setPattern("Pos:\\s*(\\d+).(\\d+)s\\s*");
@@ -14,7 +14,7 @@ MencoderControl::MencoderControl(QObject *parent)
 }
 
 
-MencoderControl::~MencoderControl()
+MEncoderControl::~MEncoderControl()
 {
    delete m_StartTime;
    delete m_EndTime;
@@ -30,31 +30,31 @@ MencoderControl::~MencoderControl()
 
 
 
-void MencoderControl::setMencoderAddress(const QString &address)
+void MEncoderControl::setMencoderAddress(const QString &address)
 {
-   m_MencoderAddress = address;
+   m_MEncoderAddress = address;
 }
 
 
-void MencoderControl::setInputMedia(const QString &input)
+void MEncoderControl::setInputMedia(const QString &input)
 {
    m_Input = input;
 }
 
 
-void MencoderControl::setSubtitle(const QString &address)
+void MEncoderControl::setSubtitle(const QString &address)
 {
    m_Subtitle = address;
 }
 
 
-void MencoderControl::setOutput(const QString &output)
+void MEncoderControl::setOutput(const QString &output)
 {
    m_Output = output;
 }
 
 
-void MencoderControl::setClipTime(const QTime &startTime, const QTime &endTime)
+void MEncoderControl::setClipTime(const QTime &startTime, const QTime &endTime)
 {
    m_StartTime = new QTime();
    m_EndTime = new QTime();
@@ -72,14 +72,14 @@ void MencoderControl::setClipTime(const QTime &startTime, const QTime &endTime)
 
 
 
-void MencoderControl::startConversion()
+void MEncoderControl::startConversion()
 {
    qDebug() << "MencoderControl::startConversion: ";
    if(m_Input.isEmpty() || m_Output.isEmpty() || m_Subtitle.isEmpty() || m_EndTime->msecsSinceStartOfDay() == 0)
       return;
 
    updateArgs();
-   m_Process->setProgram(m_MencoderAddress);
+   m_Process->setProgram(m_MEncoderAddress);
    m_Process->setArguments(m_Args);
 
    qDebug() << "### command: ### " << m_Process->program() << " " << m_Args.join(' ') << " ###";
@@ -97,7 +97,7 @@ void MencoderControl::startConversion()
 
 
 
-void MencoderControl::readStdOutErr()
+void MEncoderControl::readStdOutErr()
 {
    QString log = m_Process->readAll();
    if(log.contains(m_RegexPosition))
@@ -108,7 +108,7 @@ void MencoderControl::readStdOutErr()
 }
 
 
-void MencoderControl::processFinished(int exitCode)
+void MEncoderControl::processFinished(int exitCode)
 {
    emit finished(exitCode);
 }
@@ -126,7 +126,7 @@ void MencoderControl::processFinished(int exitCode)
 
 
 
-void MencoderControl::updateArgs()
+void MEncoderControl::updateArgs()
 {
    m_Args.clear();
    m_Args

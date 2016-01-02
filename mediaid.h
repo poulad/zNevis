@@ -55,7 +55,7 @@ private:
    void readSubtitleId();
 
    QProcess *m_Process;
-   QString m_mplayerAddress;
+   QString m_MPlayerAddress;
    QString m_StdOutErr;
    QStringList m_OutputLines;
    QRegExp m_IdRegex;

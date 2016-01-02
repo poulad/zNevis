@@ -9,9 +9,9 @@ MediaID::MediaID(QString mplayer, QObject *parent)
    m_FileFormatRegex.setPattern("^Detected\\s+file\\s+format:\\s+(*)$");
    m_FileFormatRegex.setCaseSensitivity(Qt::CaseInsensitive);
 
-   m_mplayerAddress = mplayer;
+   m_MPlayerAddress = mplayer;
    m_Process = new QProcess(this);
-   m_Process->setProgram(m_mplayerAddress);
+   m_Process->setProgram(m_MPlayerAddress);
    connect(m_Process, SIGNAL(finished(int)), this, SLOT(identifyMedia(int)));
 }
 
@@ -46,7 +46,7 @@ void MediaID::setMedia(const QString &media)
    clear();
    m_Address = media;
    QString command;
-   command = m_mplayerAddress + " -identify -endpos 0 " + "\"" + m_Address + "\"";
+   command = m_MPlayerAddress + " -identify -endpos 0 " + "\"" + m_Address + "\"";
    m_Process->start(command);
 }
 
