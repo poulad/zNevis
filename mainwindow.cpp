@@ -410,9 +410,9 @@ void MainWindow::on_positionSlider_sliderPressed()
 
 void MainWindow::on_positionSlider_sliderReleased()
 {
-    disconnect(ui->positionSlider, SIGNAL(valueChanged(int)), m_MPlayerWidget, SLOT(seekTo(int)));
-    connect(m_MPlayerWidget, SIGNAL(positionChanged(int)), this, SLOT(updateVideoPosition(int)));
-    m_MPlayerWidget->playPause();
+   disconnect(ui->positionSlider, SIGNAL(valueChanged(int)), m_MPlayerWidget, SLOT(seekTo(int)));
+   connect(m_MPlayerWidget, SIGNAL(positionChanged(int)), this, SLOT(updateVideoPosition(int)));
+   m_MPlayerWidget->playPause();
 }
 
 
@@ -584,13 +584,13 @@ void MainWindow::on_tabWidget_currentChanged(int index)
    qDebug() << "MainWindow::on_tabWidget_currentChanged: " << QString::number(index) << ui->tabWidget->tabText(index);
    switch (index)
    {
-   case 0:
-   case 1:
-      ui->toolbarSubtitle->setVisible(false);
-      return;
-   case 2:
-      ui->toolbarSubtitle->setVisible(true);
-      return;
+      case 0:
+      case 1:
+         ui->toolbarSubtitle->setVisible(false);
+         return;
+      case 2:
+         ui->toolbarSubtitle->setVisible(true);
+         return;
    }
 }
 

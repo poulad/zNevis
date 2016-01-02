@@ -33,31 +33,29 @@ public:
 
 private slots:
    void changeLineProperties(int,int,int, int);
+   void on_tabWidget_currentChanged(int index);
 
-   void updateText();
-   void updatePosition();
-
-   void playPreviousLine();
-   void playNextLine();
-
-   void updateVideoPosition(int mSec);
-
-   // Controlling mplayer:
+   // MPlayer:
+   void importVideoId(const MediaID* mediaID);
    void on_actionOpenVideo_triggered();
-   void on_actionConvert_triggered();
-
+   void on_playPauseButton_clicked();
    void on_positionSlider_sliderPressed();
    void on_positionSlider_sliderReleased();
+   void playPreviousLine();
+   void playNextLine();
+   void updateVideoPosition(int mSec);
 
-   void on_colorButton_clicked();
+   // MEncoder:
+   void on_actionConvert_triggered();
+   void on_actionOutputFile_triggered();
+   void on_buttonStartClip_clicked();
+   void on_buttonEndClip_clicked();
 
-   // mplayer
-   void importVideoId(const MediaID* mediaID);
-
-   // Editing Subtitle:
+   // Subtitle:
    void importSubtitle();
    void on_actionNewSubtitle_triggered();
    void on_actionOpenSubtitle_triggered();
+   void on_updateCheckBox_toggled(bool checked);
    void on_actionSetLineShow_triggered();
    void on_actionSetLineHide_triggered();
    void on_fontComboBox_currentFontChanged(const QFont &f);
@@ -66,23 +64,13 @@ private slots:
    void on_buttonItalic_toggled(bool checked);
    void on_buttonUnderline_toggled(bool checked);
    void on_buttonStrikeout_toggled(bool checked);
+   void on_colorButton_clicked();
    void on_positionCheckBox_toggled(bool);
-   void on_actionAddText_triggered();
+   void updateText();
+   void updatePosition();
    void updateShowTime(QTime showTime);
    void updateHideTime(QTime hideTime);
-
-   void on_tabWidget_currentChanged(int index);
-
-   void on_buttonStartClip_clicked();
-
-   void on_buttonEndClip_clicked();
-
-   void on_actionOutputFile_triggered();
-
-   void on_playPauseButton_clicked();
-
-   void on_updateCheckBox_toggled(bool checked);
-
+   void on_actionAddText_triggered();
 
 
 private:

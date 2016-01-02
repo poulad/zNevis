@@ -120,6 +120,7 @@ void MPlayerWidget::playPause()
    m_Command = "pause";
    sendCommand();
    m_IsPlaying = !m_IsPlaying;
+   qDebug() << m_IsPlaying;
 }
 
 
@@ -129,8 +130,6 @@ void MPlayerWidget::pause()
    m_IsPlaying = false;
    sendCommand();
 }
-
-
 
 
 void MPlayerWidget::quit()
@@ -206,8 +205,8 @@ void MPlayerWidget::readVideoId()
    {
       emit videoIdChanged(m_MediaID);
       m_Command = "loadfile \"" + m_MediaID->fileName() + "\" 0";
-      m_IsPlaying = true;
       sendCommand();
+      m_IsPlaying = true;
    }
 }
 
